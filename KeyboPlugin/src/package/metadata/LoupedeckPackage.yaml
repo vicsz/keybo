@@ -18,7 +18,7 @@ description: A keypad robot that keeps an eye on your Mac and your Claude and Co
 pluginFileName: KeyboPlugin.dll
 
 # Plugin version.
-version: 1.0
+version: 1.1
 
 # Author of the plugin. The author can be a company or an individual developer.
 author: Victor Sz
