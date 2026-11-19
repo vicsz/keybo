@@ -3,8 +3,8 @@ namespace Loupedeck.KeyboPlugin
     using System;
     using System.Threading;
 
-    // Tap to keep the Mac awake, tap again to let it sleep. While on, the cup steams: the key redraws a few times a
-    // second, and only while it's on.
+    // Tap to keep the Mac and its screen on, with no lock; tap again to let them sleep. While on, the cup steams: the key
+    // redraws a few times a second, and only while it's on.
 
     public class KeepAwakeCommand : PluginDynamicCommand
     {
@@ -15,7 +15,7 @@ namespace Loupedeck.KeyboPlugin
         private Int32 _frame;
 
         public KeepAwakeCommand()
-            : base("Keep awake", "Tap to stop the Mac sleeping on its own. The screen can still turn off", Groups.Tools)
+            : base("Keep awake", "Tap to keep the Mac and its screen on, with no lock, until you tap again", Groups.Tools)
         {
             this.IsWidget = true;
         }

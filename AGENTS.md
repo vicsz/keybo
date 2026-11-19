@@ -63,7 +63,7 @@ Mac and tools:
 - `Mac.cs`: kernel, Foundation, Wi-Fi, AppKit and CoreGraphics calls (Mach host statistics, sysctl, disk space, CoreWLAN, app icons, seconds since last input).
 - `Sensors.cs`: IOKit hardware readings: GPU, disk traffic, temperatures, battery.
 - `Audio.cs`: CoreAudio: the default microphone (in use, muted, muting it) for Mic, and which apps are recording for Dictate.
-- `KeepAwake.cs`: holds an IOKit power assertion (`PreventUserIdleSystemSleep`), like `caffeinate`; macOS drops it if the plugin exits. `KeepAwakeCommand` steps the cup's steam every 240 ms, only while on.
+- `KeepAwake.cs`: keeps the Mac and its screen on, with no lock: an IOKit `PreventUserIdleDisplaySleep` assertion (like `caffeinate -d`) plus `IOPMAssertionDeclareUserActivity` every 30 s (like `caffeinate -u`), so screen saver and lock timers never run out. macOS drops both if the plugin exits. `KeepAwakeCommand` steps the cup's steam every 240 ms, only while on.
 - `Pomodoro.cs`: the 25-minute timer (ready, running, paused, done), ticking only while running. `PomodoroCommand` draws it; Keybo watches `IsDone`, `IsRunning` and `Finished`.
 - `History.cs`: the last 60 samples for graphs.
 
