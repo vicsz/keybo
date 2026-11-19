@@ -1,0 +1,1870 @@
+{
+  "note": "One-off gags by Codex; each starts and ends on the idle robot.",
+  "gags": {
+    "elevator": {
+      "name": "Elevator",
+      "frames": [
+        {
+          "file": "gags/elevator/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/elevator/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/elevator/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/elevator/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/elevator/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/elevator/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/elevator/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/elevator/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/elevator/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/elevator/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "alien_abduction": {
+      "name": "Abduction",
+      "frames": [
+        {
+          "file": "gags/alien_abduction/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/alien_abduction/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/alien_abduction/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/alien_abduction/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/alien_abduction/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/alien_abduction/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/alien_abduction/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/alien_abduction/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/alien_abduction/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/alien_abduction/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "banana_peel": {
+      "name": "Banana Peel",
+      "frames": [
+        {
+          "file": "gags/banana_peel/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/banana_peel/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/banana_peel/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/banana_peel/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/banana_peel/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/banana_peel/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/banana_peel/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/banana_peel/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/banana_peel/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/banana_peel/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "forklift": {
+      "name": "Forklift",
+      "frames": [
+        {
+          "file": "gags/forklift/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/forklift/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/forklift/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/forklift/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/forklift/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/forklift/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/forklift/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/forklift/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/forklift/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/forklift/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "magic_trick": {
+      "name": "Magic Trick",
+      "frames": [
+        {
+          "file": "gags/magic_trick/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/magic_trick/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/magic_trick/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/magic_trick/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/magic_trick/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/magic_trick/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/magic_trick/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/magic_trick/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/magic_trick/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/magic_trick/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "cardboard_double": {
+      "name": "Cardboard",
+      "frames": [
+        {
+          "file": "gags/cardboard_double/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/cardboard_double/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/cardboard_double/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/cardboard_double/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/cardboard_double/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/cardboard_double/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/cardboard_double/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/cardboard_double/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/cardboard_double/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/cardboard_double/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "dial_up": {
+      "name": "Dial-up",
+      "frames": [
+        {
+          "file": "gags/dial_up/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/dial_up/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/dial_up/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/dial_up/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/dial_up/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/dial_up/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/dial_up/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/dial_up/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/dial_up/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/dial_up/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "pong": {
+      "name": "Pong",
+      "frames": [
+        {
+          "file": "gags/pong/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/pong/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/pong/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/pong/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/pong/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/pong/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/pong/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/pong/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/pong/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/pong/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "dvd_bounce": {
+      "name": "DVD Bounce",
+      "frames": [
+        {
+          "file": "gags/dvd_bounce/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/dvd_bounce/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/dvd_bounce/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/dvd_bounce/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/dvd_bounce/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/dvd_bounce/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/dvd_bounce/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/dvd_bounce/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/dvd_bounce/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/dvd_bounce/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "gravity_flip": {
+      "name": "Gravity Flip",
+      "frames": [
+        {
+          "file": "gags/gravity_flip/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/gravity_flip/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/gravity_flip/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/gravity_flip/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/gravity_flip/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/gravity_flip/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/gravity_flip/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/gravity_flip/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/gravity_flip/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/gravity_flip/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "moustache": {
+      "name": "Moustache",
+      "frames": [
+        {
+          "file": "gags/moustache/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/moustache/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/moustache/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/moustache/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/moustache/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/moustache/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/moustache/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/moustache/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/moustache/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/moustache/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "ovation": {
+      "name": "Ovation",
+      "frames": [
+        {
+          "file": "gags/ovation/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/ovation/02.png",
+          "duration_ms": 130
+        },
+        {
+          "file": "gags/ovation/03.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/ovation/04.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/ovation/05.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/ovation/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/ovation/07.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/ovation/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/ovation/09.png",
+          "duration_ms": 270
+        },
+        {
+          "file": "gags/ovation/10.png",
+          "duration_ms": 200
+        }
+      ]
+    },
+    "escape_attempt": {
+      "name": "Escape Attempt",
+      "frames": [
+        {
+          "file": "gags/escape_attempt/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/escape_attempt/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/escape_attempt/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/escape_attempt/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/escape_attempt/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/escape_attempt/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/escape_attempt/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/escape_attempt/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/escape_attempt/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/escape_attempt/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/escape_attempt/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/escape_attempt/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "key_swap": {
+      "name": "Key Swap",
+      "frames": [
+        {
+          "file": "gags/key_swap/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/key_swap/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/key_swap/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/key_swap/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/key_swap/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/key_swap/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/key_swap/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/key_swap/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/key_swap/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/key_swap/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/key_swap/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/key_swap/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "screen_crack": {
+      "name": "Screen Crack",
+      "frames": [
+        {
+          "file": "gags/screen_crack/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/screen_crack/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/screen_crack/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/screen_crack/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/screen_crack/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/screen_crack/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/screen_crack/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/screen_crack/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/screen_crack/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/screen_crack/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/screen_crack/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/screen_crack/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "low_battery": {
+      "name": "Low Battery",
+      "frames": [
+        {
+          "file": "gags/low_battery/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/low_battery/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/low_battery/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/low_battery/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/low_battery/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/low_battery/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/low_battery/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/low_battery/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/low_battery/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/low_battery/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/low_battery/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/low_battery/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "beachball": {
+      "name": "Beachball",
+      "frames": [
+        {
+          "file": "gags/beachball/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/beachball/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/beachball/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/beachball/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/beachball/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/beachball/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/beachball/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/beachball/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/beachball/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/beachball/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/beachball/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/beachball/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "agent_overload": {
+      "name": "Agent Overload",
+      "frames": [
+        {
+          "file": "gags/agent_overload/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/agent_overload/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/agent_overload/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/agent_overload/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/agent_overload/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/agent_overload/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/agent_overload/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/agent_overload/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/agent_overload/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/agent_overload/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/agent_overload/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/agent_overload/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "merge_conflict": {
+      "name": "Merge Conflict",
+      "frames": [
+        {
+          "file": "gags/merge_conflict/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/merge_conflict/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/merge_conflict/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/merge_conflict/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/merge_conflict/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/merge_conflict/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/merge_conflict/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/merge_conflict/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/merge_conflict/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/merge_conflict/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/merge_conflict/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/merge_conflict/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "rm_rf": {
+      "name": "rm -rf",
+      "frames": [
+        {
+          "file": "gags/rm_rf/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/rm_rf/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/rm_rf/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/rm_rf/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/rm_rf/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/rm_rf/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/rm_rf/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/rm_rf/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/rm_rf/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/rm_rf/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/rm_rf/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/rm_rf/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "coffee_overflow": {
+      "name": "Coffee Overflow",
+      "frames": [
+        {
+          "file": "gags/coffee_overflow/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/coffee_overflow/02.png",
+          "duration_ms": 145
+        },
+        {
+          "file": "gags/coffee_overflow/03.png",
+          "duration_ms": 145
+        },
+        {
+          "file": "gags/coffee_overflow/04.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/coffee_overflow/05.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/coffee_overflow/06.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/coffee_overflow/07.png",
+          "duration_ms": 55
+        },
+        {
+          "file": "gags/coffee_overflow/08.png",
+          "duration_ms": 55
+        },
+        {
+          "file": "gags/coffee_overflow/09.png",
+          "duration_ms": 55
+        },
+        {
+          "file": "gags/coffee_overflow/10.png",
+          "duration_ms": 220
+        },
+        {
+          "file": "gags/coffee_overflow/11.png",
+          "duration_ms": 235
+        },
+        {
+          "file": "gags/coffee_overflow/12.png",
+          "duration_ms": 180
+        }
+      ]
+    },
+    "pomodoro_rebellion": {
+      "name": "Pomodoro Rebellion",
+      "frames": [
+        {
+          "file": "gags/pomodoro_rebellion/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/pomodoro_rebellion/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/pomodoro_rebellion/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/pomodoro_rebellion/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/pomodoro_rebellion/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/pomodoro_rebellion/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/pomodoro_rebellion/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/pomodoro_rebellion/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/pomodoro_rebellion/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/pomodoro_rebellion/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/pomodoro_rebellion/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/pomodoro_rebellion/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "rocket_launch": {
+      "name": "Rocket Launch",
+      "frames": [
+        {
+          "file": "gags/rocket_launch/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/rocket_launch/02.png",
+          "duration_ms": 280
+        },
+        {
+          "file": "gags/rocket_launch/03.png",
+          "duration_ms": 260
+        },
+        {
+          "file": "gags/rocket_launch/04.png",
+          "duration_ms": 250
+        },
+        {
+          "file": "gags/rocket_launch/05.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/rocket_launch/06.png",
+          "duration_ms": 110
+        },
+        {
+          "file": "gags/rocket_launch/07.png",
+          "duration_ms": 90
+        },
+        {
+          "file": "gags/rocket_launch/08.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/rocket_launch/09.png",
+          "duration_ms": 175
+        },
+        {
+          "file": "gags/rocket_launch/10.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/rocket_launch/11.png",
+          "duration_ms": 230
+        },
+        {
+          "file": "gags/rocket_launch/12.png",
+          "duration_ms": 175
+        }
+      ]
+    },
+    "kaiju": {
+      "name": "Kaiju",
+      "frames": [
+        {
+          "file": "gags/kaiju/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/kaiju/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/kaiju/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/kaiju/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/kaiju/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/kaiju/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/kaiju/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/kaiju/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/kaiju/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/kaiju/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/kaiju/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/kaiju/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "matrix": {
+      "name": "Matrix",
+      "frames": [
+        {
+          "file": "gags/matrix/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/matrix/02.png",
+          "duration_ms": 120
+        },
+        {
+          "file": "gags/matrix/03.png",
+          "duration_ms": 120
+        },
+        {
+          "file": "gags/matrix/04.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/matrix/05.png",
+          "duration_ms": 180
+        },
+        {
+          "file": "gags/matrix/06.png",
+          "duration_ms": 210
+        },
+        {
+          "file": "gags/matrix/07.png",
+          "duration_ms": 235
+        },
+        {
+          "file": "gags/matrix/08.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/matrix/09.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/matrix/10.png",
+          "duration_ms": 160
+        },
+        {
+          "file": "gags/matrix/11.png",
+          "duration_ms": 195
+        },
+        {
+          "file": "gags/matrix/12.png",
+          "duration_ms": 180
+        }
+      ]
+    },
+    "disco": {
+      "name": "Disco",
+      "frames": [
+        {
+          "file": "gags/disco/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/disco/02.png",
+          "duration_ms": 120
+        },
+        {
+          "file": "gags/disco/03.png",
+          "duration_ms": 120
+        },
+        {
+          "file": "gags/disco/04.png",
+          "duration_ms": 120
+        },
+        {
+          "file": "gags/disco/05.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/disco/06.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/disco/07.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/disco/08.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/disco/09.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/disco/10.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/disco/11.png",
+          "duration_ms": 190
+        },
+        {
+          "file": "gags/disco/12.png",
+          "duration_ms": 185
+        }
+      ]
+    },
+    "mic_drop": {
+      "name": "Mic Drop",
+      "frames": [
+        {
+          "file": "gags/mic_drop/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/mic_drop/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/mic_drop/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/mic_drop/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/mic_drop/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/mic_drop/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/mic_drop/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/mic_drop/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/mic_drop/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/mic_drop/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/mic_drop/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/mic_drop/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "stapler_boss": {
+      "name": "Stapler Boss",
+      "frames": [
+        {
+          "file": "gags/stapler_boss/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/stapler_boss/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/stapler_boss/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/stapler_boss/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/stapler_boss/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/stapler_boss/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/stapler_boss/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/stapler_boss/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/stapler_boss/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/stapler_boss/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/stapler_boss/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/stapler_boss/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "floor_is_lava": {
+      "name": "Floor Is Lava",
+      "frames": [
+        {
+          "file": "gags/floor_is_lava/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/floor_is_lava/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/floor_is_lava/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/floor_is_lava/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/floor_is_lava/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/floor_is_lava/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/floor_is_lava/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/floor_is_lava/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/floor_is_lava/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/floor_is_lava/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/floor_is_lava/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/floor_is_lava/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "portal_pants": {
+      "name": "Portal Pants",
+      "frames": [
+        {
+          "file": "gags/portal_pants/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/portal_pants/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/portal_pants/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/portal_pants/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/portal_pants/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/portal_pants/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/portal_pants/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/portal_pants/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/portal_pants/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/portal_pants/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/portal_pants/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/portal_pants/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "parry_this": {
+      "name": "Pan Parry",
+      "frames": [
+        {
+          "file": "gags/parry_this/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/parry_this/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/parry_this/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/parry_this/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/parry_this/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/parry_this/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/parry_this/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/parry_this/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/parry_this/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/parry_this/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/parry_this/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/parry_this/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "roll_for_dignity": {
+      "name": "Roll for Dignity",
+      "frames": [
+        {
+          "file": "gags/roll_for_dignity/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/roll_for_dignity/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/roll_for_dignity/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/roll_for_dignity/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/roll_for_dignity/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/roll_for_dignity/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/roll_for_dignity/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/roll_for_dignity/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/roll_for_dignity/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/roll_for_dignity/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/roll_for_dignity/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/roll_for_dignity/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "practical_effects": {
+      "name": "Practical Effects",
+      "frames": [
+        {
+          "file": "gags/practical_effects/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/practical_effects/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/practical_effects/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/practical_effects/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/practical_effects/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/practical_effects/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/practical_effects/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/practical_effects/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/practical_effects/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/practical_effects/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/practical_effects/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/practical_effects/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "slow_door": {
+      "name": "Slow Door",
+      "frames": [
+        {
+          "file": "gags/slow_door/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/slow_door/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/slow_door/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/slow_door/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/slow_door/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/slow_door/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/slow_door/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/slow_door/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/slow_door/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/slow_door/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/slow_door/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/slow_door/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "retro_3d": {
+      "name": "Retro 3D",
+      "frames": [
+        {
+          "file": "gags/retro_3d/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/retro_3d/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/retro_3d/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/retro_3d/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/retro_3d/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/retro_3d/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/retro_3d/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/retro_3d/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/retro_3d/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/retro_3d/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/retro_3d/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/retro_3d/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "mimic": {
+      "name": "The Mimic",
+      "frames": [
+        {
+          "file": "gags/mimic/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/mimic/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/mimic/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/mimic/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/mimic/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/mimic/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/mimic/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/mimic/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/mimic/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/mimic/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/mimic/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/mimic/12.png",
+          "duration_ms": 195
+        }
+      ]
+    },
+    "desk_rollup": {
+      "name": "Desk Rollup",
+      "frames": [
+        {
+          "file": "gags/desk_rollup/01.png",
+          "duration_ms": 100
+        },
+        {
+          "file": "gags/desk_rollup/02.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/desk_rollup/03.png",
+          "duration_ms": 125
+        },
+        {
+          "file": "gags/desk_rollup/04.png",
+          "duration_ms": 140
+        },
+        {
+          "file": "gags/desk_rollup/05.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/desk_rollup/06.png",
+          "duration_ms": 150
+        },
+        {
+          "file": "gags/desk_rollup/07.png",
+          "duration_ms": 155
+        },
+        {
+          "file": "gags/desk_rollup/08.png",
+          "duration_ms": 170
+        },
+        {
+          "file": "gags/desk_rollup/09.png",
+          "duration_ms": 185
+        },
+        {
+          "file": "gags/desk_rollup/10.png",
+          "duration_ms": 200
+        },
+        {
+          "file": "gags/desk_rollup/11.png",
+          "duration_ms": 245
+        },
+        {
+          "file": "gags/desk_rollup/12.png",
+          "duration_ms": 195
+        }
+      ]
+    }
+  }
+}
