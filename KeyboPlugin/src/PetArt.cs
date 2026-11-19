@@ -8,7 +8,8 @@ namespace Loupedeck.KeyboPlugin
     using System.Text.Json;
 
     // The Pet key's frames: 116 x 116 PNGs in Pet/<state>/, a few badge PNGs, and Pet/animation-timing.json with each
-    // frame's duration, its badge, and where the sign text goes. Pet/gags.json lists one-off gags (Pet/gags/<name>/),
+    // frame's duration, its badge, where the sign text goes, and any word of its own for that spot (the booth's "Live").
+    // Pet/gags.json lists one-off gags (Pet/gags/<name>/),
     // which play once and are named "gag:<name>" here. All embedded in the plugin; loaded once.
 
     public static class PetArt
@@ -32,7 +33,8 @@ namespace Loupedeck.KeyboPlugin
                     f.TryGetProperty("badge", out var badge) ? badges[badge.GetString()] : null,
                     f.TryGetProperty("text_box", out var box)
                         ? (box.GetProperty("x").GetInt32(), box.GetProperty("y").GetInt32(), box.GetProperty("width").GetInt32(), box.GetProperty("height").GetInt32())
-                        : null)).ToArray();
+                        : null,
+                    f.TryGetProperty("label", out var label) ? label.GetString() : null)).ToArray();
 
                 states[state.Name] = new Animation(frames, state.Value.GetProperty("playback").GetString() == "loop");
             }
@@ -40,7 +42,7 @@ namespace Loupedeck.KeyboPlugin
             foreach (var gag in JsonDocument.Parse(Read(assembly, "Pet/gags.json")).RootElement.GetProperty("gags").EnumerateObject())
             {
                 var frames = gag.Value.GetProperty("frames").EnumerateArray().Select(f => new Frame(
-                    Read(assembly, "Pet/" + f.GetProperty("file").GetString()), f.GetProperty("duration_ms").GetInt32(), null, null)).ToArray();
+                    Read(assembly, "Pet/" + f.GetProperty("file").GetString()), f.GetProperty("duration_ms").GetInt32(), null, null, null)).ToArray();
 
                 states["gag:" + gag.Name] = new Animation(frames, false);
             }
@@ -58,7 +60,7 @@ namespace Loupedeck.KeyboPlugin
             }
         }
 
-        public record Frame(Byte[] Png, Int32 Ms, Byte[] Badge, (Int32 X, Int32 Y, Int32 Width, Int32 Height)? TextBox);
+        public record Frame(Byte[] Png, Int32 Ms, Byte[] Badge, (Int32 X, Int32 Y, Int32 Width, Int32 Height)? TextBox, String Label);
 
         public record Animation(Frame[] Frames, Boolean Loops);
     }

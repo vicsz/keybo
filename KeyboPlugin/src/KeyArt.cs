@@ -221,12 +221,13 @@ namespace Loupedeck.KeyboPlugin
         }
 
         // One Keybo frame with its sign: plain text, or a session's mark, ! (waiting) or ✓ (done), and a count when
-        // there are several. A frame without a sign box shows no sign.
+        // there are several. A frame without a sign box shows no sign; with no sign, the box shows the frame's own word,
+        // if it has one (the booth's "Live").
         public static BitmapImage Pet(PluginImageSize imageSize, PetArt.Frame frame, Sign sign)
         {
             if (sign == null || frame.TextBox is not (Int32 x, Int32 y, Int32 width, Int32 height))
             {
-                return Sprite(imageSize, frame.Png, frame.Badge, null, null, null);
+                return Sprite(imageSize, frame.Png, frame.Badge, null, sign == null ? frame.Label : null, frame.TextBox);
             }
 
             if (sign.Session == null)

@@ -21,16 +21,19 @@ you (!), a finished Pomodoro, a finished session (✓), then something running l
 sessions are waiting or done.
 
 Tap him to deal with it. A session opens, and Keybo leaves it be until it changes state again. A Mac problem gets
-eaten and stays quiet for 30 minutes. With nothing to show, a tap gets you a gag: there are 37, from Pong to a kaiju
-attack. Leave him alone long enough and he'll play one on his own.
+eaten and stays quiet for 30 minutes, except memory: when it runs out, walls close in on him, and a tap opens them.
+With nothing to show, a tap gets you a gag: there are 39, from Pong to a kaiju attack. Leave him alone long enough
+and he'll play one on his own.
 
 Some gags mark the moment: he drops the mic when a session finishes, gets chased by a tomato when a Pomodoro ends,
-overflows with coffee when you turn on Keep awake, and recharges when he wakes from a doze. While a Pomodoro runs he
-wears a headband and stays focused, with no gags. When the Mac goes offline he sits holding an unplugged cable, and
-cheers when it's back. Press Return and he throws a paper plane.
+overflows with coffee when you turn on Keep awake, recharges when he wakes from a doze, and gets jump-started when a
+laptop under 20% is plugged in. While a Pomodoro runs he wears a headband and stays focused, with no gags. While an
+app records from the mic he wears headphones under a red Live light. When the Mac goes offline he sits holding an
+unplugged cable, and cheers when it's back. Press Return and he throws a paper plane.
 
 He has feelings, too. Tap twice quickly for a head pat. Keep tapping and he gives you a look, then huffs, and at
-eight taps he throws a tantrum and sulks for 30 seconds, ignoring you unless something needs you. Hold him down and
+eight taps he throws a tantrum (now and then a censored finger) and sulks for 30 seconds, ignoring you unless
+something needs you. Hold him down and
 he squishes, flattens to a pancake, and redlines a pressure gauge; let go and he springs back, or launches.
 
 ## Keys

@@ -7,13 +7,15 @@ namespace Loupedeck.KeyboPlugin
 
     // Keybo, the robot that sums up the Mac and your agents on one key. PetMood decides what he shows; this key plays
     // it, reacts to taps and holds, and adds the moments in between. The frames and timings live in Pet/ (see PetArt).
-    // Tap: deal with the sign (a session opens; anything else is eaten and set aside), or, with nothing showing, a
-    // random gag. Quick taps after it only react: the 2nd gets a head pat, the 3rd a side eye, the 5th a huff, and the
-    // 8th a tantrum and 30 seconds of sulking, when taps do nothing unless a sign is up.
+    // Tap: deal with the sign and set it aside (a session opens, the memory walls open, anything else is eaten), or,
+    // with nothing showing, a random gag. Quick taps after it only react: the 2nd gets a head pat, the 3rd a side eye,
+    // the 5th a huff, and the 8th a tantrum (1 time in 4 a censored finger instead) and 30 seconds of sulking, when
+    // taps do nothing unless a sign is up.
     // Hold: he squishes (a pancake at 2 s, a pressure gauge at 4 s); letting go springs him back, or launches him.
-    // In between, never over a red sign: the headband comes and goes with a Pomodoro, the cable with the connection,
-    // a paper plane flies when Return sends, and a few gags mark events (Mic Drop when a session finishes, Pomodoro
-    // Rebellion when a Pomodoro ends, Coffee Overflow when Keep awake goes on, Low Battery when he wakes from a doze).
+    // In between, never over a red sign: the headband comes and goes with a Pomodoro, the recording booth with the mic,
+    // the cable with the connection, a paper plane flies when Return sends (once the booth has closed), and a few clips
+    // mark events (Mic Drop when a session finishes, Pomodoro Rebellion when a Pomodoro ends, Coffee Overflow when Keep
+    // awake goes on, Low Battery when he wakes from a doze, Jump Start when a laptop under 20% gets power).
     // Gags also play on their own, rarely: only after 15 calm minutes, while you've paused (2 to 10 minutes without
     // input), at most one every 10 to 20 minutes.
     // (The class keeps its first name so keys already on the keypad stay put.)
@@ -64,10 +66,12 @@ namespace Loupedeck.KeyboPlugin
         private DateTime _nextGagAt = DateTime.UtcNow;
         private String _lastGag;
 
-        // Events: a gag waiting to play, the sessions done at the last look, whether he was dozing, and when Return sent.
+        // Events: a gag waiting to play, the sessions done at the last look, whether he was dozing, whether the Mac was on
+        // power at the last battery reading (null before the first, and on a Mac without a battery), and when Return sent.
         private String _eventGag;
         private HashSet<String> _doneIds;
         private Boolean _wasSleepy;
+        private Boolean? _onPower;
         private DateTime? _planeAt;
 
         // Taps, holds and sulks.
@@ -164,9 +168,11 @@ namespace Loupedeck.KeyboPlugin
                         return;
                     }
 
+                    // Both start from idle and end on the sulk's first frame.
                     if (reaction == "tantrum")
                     {
                         this._sulkUntil = now + Sulk;
+                        reaction = this._random.Next(4) == 0 ? "middle_finger" : "tantrum";
                     }
 
                     PluginLog.Info($"Pet: {reaction} after {this._tapCount} taps");
@@ -177,7 +183,7 @@ namespace Loupedeck.KeyboPlugin
                     this._mood.SetAside(mood);
                     PluginLog.Info($"Pet: acknowledged {mood.Problem ?? mood.Session.Id}");
                     open = mood.Session;
-                    this.Play(mood.State != "done" ? "chomp" : "happy", mood.Sign);
+                    this.Play(mood.State switch { "done" => "happy", "walls" => "walls_end", _ => "chomp" }, mood.Sign);
                 }
                 else
                 {
@@ -333,8 +339,9 @@ namespace Loupedeck.KeyboPlugin
             return 0;
         }
 
-        // A one-off to play before settling on the mood: the end of a sulk, the headband or cable coming or going,
-        // an event gag, or a paper plane.
+        // A one-off to play before settling on the mood: the end of a sulk, the walls opening, the booth, headband or
+        // cable coming or going, an event, or a paper plane. The walls and the booth go by what's on the key: they only
+        // open or close while showing, and the booth comes back in after anything that covered it.
         private String Interlude(Mood mood, DateTime now)
         {
             if (this._sulkUntil is DateTime until && now >= until)
@@ -349,7 +356,19 @@ namespace Loupedeck.KeyboPlugin
             }
 
             var offline = this._mood.IsOffline;
-            var focusing = this.Keybo.Pomodoro.IsRunning;
+            var live = mood.State == "live";
+            var focusing = this.Keybo.Pomodoro.IsRunning && !live;
+
+            // Memory has recovered: the walls open, unless another sign needs the key.
+            if (this._state == "walls" && mood.State != "walls" && !mood.HasSign)
+            {
+                return "walls_end";
+            }
+
+            if (!live && this._state is ("live" or "live_start"))
+            {
+                return "live_end";
+            }
 
             if (this._offlineShown && !offline)
             {
@@ -376,6 +395,11 @@ namespace Loupedeck.KeyboPlugin
                 return "focus_start";
             }
 
+            if (live && this._state is not ("live" or "live_start"))
+            {
+                return "live_start";
+            }
+
             var gag = this.EventGag(mood);
 
             if (gag != null)
@@ -383,25 +407,34 @@ namespace Loupedeck.KeyboPlugin
                 return gag;
             }
 
+            // A plane waits for the booth to close, and still flies if that's soon enough.
+            if (live)
+            {
+                return null;
+            }
+
             var plane = this._planeAt is DateTime sent && now - sent < PlaneWindow && !mood.HasSign;
             this._planeAt = null;
             return plane ? "paper_plane" : null;
         }
 
-        // The event gag to play now, if any. Sessions count as newly done only after the first look, so a restart
-        // doesn't replay old ones.
+        // The event to play now, if any. Sessions count as newly done only after the first look, so a restart doesn't
+        // replay old ones, and power counts as plugged in only after a reading without it.
         private String EventGag(Mood mood)
         {
             var done = this.Keybo.Sessions.All.Where(s => s.Status == SessionStatus.Done).Select(s => s.Id).ToHashSet();
             var newlyDone = this._doneIds != null && done.Any(id => !this._doneIds.Contains(id));
             var woke = this._wasSleepy && mood.State != "sleepy";
-            var gag = this._eventGag ?? (newlyDone ? "gag:mic_drop" : woke ? "gag:low_battery" : null);
+            var battery = this.Keybo.Monitor.Battery;
+            var pluggedInLow = this._onPower == false && battery is { OnPower: true, Percent: < 20 };
+            var gag = this._eventGag ?? (pluggedInLow ? "jump_start" : newlyDone ? "gag:mic_drop" : woke ? "gag:low_battery" : null);
 
             this._doneIds = done;
             this._wasSleepy = mood.State == "sleepy";
+            this._onPower = battery?.OnPower;
             this._eventGag = null;
 
-            return mood.State == "warning" ? null : gag;
+            return mood.State is "warning" or "walls" ? null : gag;
         }
 
         private void OnPomodoroFinished() => this.QueueGag("pomodoro_rebellion");

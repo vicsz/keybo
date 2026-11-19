@@ -18,10 +18,11 @@ namespace Loupedeck.KeyboPlugin
     }
 
     // Decides what Keybo shows, worst first: Mac red > session waiting > Pomodoro done > session done > Mac amber >
-    // offline > focus (a Pomodoro running) > sleepy (no input for 10 minutes) > idle. The thresholds match the stat
-    // keys' colours, except memory: macOS sits at pressure level 2 for hours on a busy Mac, so only critical (4) counts.
-    // A tap sets the sign aside: a Mac problem for 30 minutes (even if it clears and comes back meanwhile), a session
-    // until it leaves that state, and the Pomodoro until it's cleared.
+    // offline > live (an app recording from the mic) > focus (a Pomodoro running) > sleepy (no input for 10 minutes) >
+    // idle. The thresholds match the stat keys' colours, except memory: macOS sits at pressure level 2 for hours on a
+    // busy Mac, so only critical (4) counts. Memory shows as walls closing in, kept 10 seconds after the pressure drops
+    // so they don't flap. A tap sets the sign aside: a Mac problem for 30 minutes (even if it clears and comes back
+    // meanwhile), a session until it leaves that state, and the Pomodoro until it's cleared.
 
     public sealed class PetMood
     {
@@ -29,11 +30,13 @@ namespace Loupedeck.KeyboPlugin
 
         private const String PomodoroProblem = "pomodoro";
         private static readonly TimeSpan Quiet = TimeSpan.FromMinutes(30);
+        private static readonly TimeSpan MemoryHold = TimeSpan.FromSeconds(10);
 
         private readonly KeyboPlugin _plugin;
         private readonly Dictionary<String, DateTime> _macQuietUntil = new Dictionary<String, DateTime>();
         private readonly HashSet<(String Id, SessionStatus Status)> _quietSessions = new HashSet<(String, SessionStatus)>();
         private Boolean _pomodoroQuiet;
+        private DateTime _memoryUntil;
 
         public PetMood(KeyboPlugin plugin) => this._plugin = plugin;
 
@@ -50,8 +53,15 @@ namespace Loupedeck.KeyboPlugin
         public Mood Read()
         {
             var pomodoro = this._plugin.Pomodoro;
+            var monitor = this._plugin.Monitor;
             var now = DateTime.UtcNow;
-            var (red, amber) = MacProblems(this._plugin.Monitor);
+
+            if (monitor.PressureLevel >= 4)
+            {
+                this._memoryUntil = now + MemoryHold;
+            }
+
+            var (red, amber) = MacProblems(monitor, now < this._memoryUntil);
 
             // A set-aside Done lasts until that Pomodoro is cleared, so the next one shows.
             if (!pomodoro.IsDone)
@@ -67,7 +77,7 @@ namespace Loupedeck.KeyboPlugin
 
             if (red is (String redText, String redProblem) && !this.IsQuiet(redProblem, now))
             {
-                return new Mood("warning", new Sign(redText), redProblem);
+                return new Mood(redProblem == "memory" ? "walls" : "warning", new Sign(redText), redProblem);
             }
 
             if (waiting.Count > 0)
@@ -91,6 +101,7 @@ namespace Loupedeck.KeyboPlugin
             }
 
             var ambient = this.IsOffline ? "offline"
+                : monitor.Mic is { Exists: true, InUse: true, Muted: false } ? "live"
                 : pomodoro.IsRunning ? "focus"
                 : TimeSpan.FromSeconds(Mac.IdleSeconds()) >= Doze ? "sleepy"
                 : "idle";
@@ -117,8 +128,9 @@ namespace Loupedeck.KeyboPlugin
 
         private Boolean IsQuiet(String problem, DateTime now) => this._macQuietUntil.TryGetValue(problem, out var until) && now < until;
 
-        // The worst red and amber problem, each with its sign text and a name a tap can set aside.
-        private static ((String Text, String Problem)? Red, (String Text, String Problem)? Amber) MacProblems(SystemMonitor m)
+        // The worst red and amber problem, each with its sign text and a name a tap can set aside. Read decides whether
+        // memory counts as critical, since it holds it a little.
+        private static ((String Text, String Problem)? Red, (String Text, String Problem)? Amber) MacProblems(SystemMonitor m, Boolean memory)
         {
             if (!m.HasReadings)
             {
@@ -130,7 +142,7 @@ namespace Loupedeck.KeyboPlugin
             var battery = m.Battery is BatteryState b && !b.IsCharging && !b.OnPower ? b.Percent : (Double?)null;
 
             var red = m.CpuTemperature >= 95 ? ($"Hot {m.CpuTemperature:0}°", "hot")
-                : m.PressureLevel >= 4 ? ("Memory", "memory")
+                : memory ? ("Memory", "memory")
                 : free < 0.05 ? ("Disk full", "disk")
                 : battery < 10 ? ($"Battery {battery:0}%", "battery")
                 : cpu > 90 ? ($"CPU {cpu:0}%", "cpu")
