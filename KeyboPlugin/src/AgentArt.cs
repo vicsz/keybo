@@ -42,7 +42,7 @@ namespace Loupedeck.KeyboPlugin
         private const Int32 AppIconPixels = 64;
         private static readonly ConcurrentDictionary<String, Byte[]> AppIcons = new ConcurrentDictionary<String, Byte[]>();
 
-                private const Int32 LineLength = 9;
+        private const Int32 LineLength = 9;
 
         // Session keys keep the bubble and name area in the same place, whatever the name's length.
         // The bubble is nearly square, sized for a single-digit count like 3/5. Its tail ends just above the name.
@@ -315,7 +315,7 @@ namespace Loupedeck.KeyboPlugin
             return AppIcons.GetOrAdd(app, path => Directory.Exists(path) ? Mac.AppIcon(path, AppIconPixels) : null);
         }
 
-                private static String Stroked(String body, UInt32 color) => $"<g stroke='{Hex(color)}'>{body}</g>";
+        private static String Stroked(String body, UInt32 color) => $"<g stroke='{Hex(color)}'>{body}</g>";
 
         private static String Arc(Double brightness, String path) => brightness <= 0
             ? String.Empty
