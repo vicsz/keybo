@@ -6,15 +6,35 @@ namespace Loupedeck.KeyboPlugin
     // In Claude it's Claude's mic (Cmd+D). Anywhere else it's ChatGPT's single-tap dictation shortcut,
     // which has to be set to Ctrl+Opt+Cmd+D in ChatGPT's settings.
 
+    // While Claude or ChatGPT is recording (`Dictation`), faint red sound arcs ripple either side of the mic.
+
     public class DictateCommand : ShortcutCommand
     {
-        // ChatGPT's dictation runs in "Codex (Aperitif)".
-        private const String ChatGptDictation = "Codex";
+        private const String ChatGptDictation = Dictation.ChatGptProcess;
 
         public DictateCommand()
-            : base("Dictate", "Starts or stops dictation: Claude's mic in Claude, ChatGPT's dictation anywhere else", KeyArt.MicIcon)
+            : base("Dictate", "Starts or stops dictation: Claude's mic in Claude, ChatGPT's dictation anywhere else. The mic ripples while either is recording", KeyArt.MicIcon)
         {
         }
+
+        private Dictation Dictation => ((KeyboPlugin)this.Plugin).Dictation;
+
+        protected override Boolean OnLoad()
+        {
+            this.Dictation.Changed += this.OnDictation;
+            return true;
+        }
+
+        protected override Boolean OnUnload()
+        {
+            this.Dictation.Changed -= this.OnDictation;
+            return true;
+        }
+
+        protected override BitmapImage GetCommandImage(String actionParameter, PluginImageSize imageSize) =>
+            this.Dictation.IsListening ? KeyArt.Listening(imageSize, "Dictate", this.Dictation.Frame) : base.GetCommandImage(actionParameter, imageSize);
+
+        private void OnDictation() => this.ActionImageChanged();
 
         // Claude plays its own dictation sounds, but ChatGPT's dictation is silent, so the plugin plays them.
 

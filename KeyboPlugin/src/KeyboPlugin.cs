@@ -25,6 +25,9 @@ namespace Loupedeck.KeyboPlugin
         // The live Claude and Codex sessions, for the session keys and Keybo.
         public ClaudeSessionStore Sessions { get; } = new ClaudeSessionStore();
 
+        // Whether Claude or ChatGPT is recording, for Dictate and Return.
+        public Dictation Dictation { get; } = new Dictation();
+
         // Claude's usage for the Usage key. It starts only when that key is first drawn.
         public ClaudeUsage Usage => this._usage ??= new ClaudeUsage(this.GetPluginDataDirectory());
 
@@ -33,7 +36,11 @@ namespace Loupedeck.KeyboPlugin
 
         public KeyboPlugin() => PluginLog.Init(this.Log);
 
-        public override void Load() => this.Sessions.Start();
+        public override void Load()
+        {
+            this.Sessions.Start();
+            this.Dictation.Start();
+        }
 
         public override void Unload()
         {
@@ -41,6 +48,7 @@ namespace Loupedeck.KeyboPlugin
             this.Awake.Dispose();
             this.Pomodoro.Dispose();
             this.Sessions.Dispose();
+            this.Dictation.Dispose();
             this._usage?.Dispose();
         }
 

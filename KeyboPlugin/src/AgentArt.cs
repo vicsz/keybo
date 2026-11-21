@@ -1,6 +1,8 @@
 namespace Loupedeck.KeyboPlugin
 {
     using System;
+    using System.Collections.Concurrent;
+    using System.IO;
 
     // The agent keys' half of KeyArt: session keys, Usage, the shortcut keys and hold choices.
 
@@ -18,6 +20,7 @@ namespace Loupedeck.KeyboPlugin
         public const String CancelIcon = "<path d='M6 6l12 12M18 6L6 18'/>";
         private const String QuestionMark = "<path d='M9.6 8.2a2.5 2.5 0 1 1 3.6 2.3c-.8.4-1.2 1-1.2 1.7'/><path d='M12 15v.01'/>";
         private const String CheckMark = "<path d='M7.5 11l3 3 6-6'/>";
+        private static readonly String NewMessageDot = $"<circle cx='12' cy='11' r='3.2' fill='{Hex(Green)}' stroke='none'/>";
 
         private const UInt32 ChoiceSurface = 0x1B2330;
         private const UInt32 Off = 0x0C1016;
@@ -26,7 +29,20 @@ namespace Loupedeck.KeyboPlugin
         private const UInt32 DimText = 0x66727F;
         private const UInt32 Ink = 0x14100A;
 
-        private const Int32 LineLength = 9;
+        // The Dictate key's sound arcs: a soft red, faded into the key rather than drawn see-through.
+        public const Int32 ListeningFrames = 8;
+        private const UInt32 ListeningRed = 0xFF7A7A;
+        private static readonly Double[] ListeningWave = { 0, 0.55, 0.85, 0.7, 0.45, 0.25, 0.1, 0 };
+
+        // Each app's own icon, as macOS shows it, centred on the bubble's top-right corner like a badge. ChatGPT's stands
+        // for Codex. Read from the installed app once, so no logos live in the repo; a missing app just means no icon.
+        private const Int32 AppIconSize = 28;
+        private const Int32 AppIconLeft = 69;
+        private const Int32 AppIconTop = 1;
+        private const Int32 AppIconPixels = 64;
+        private static readonly ConcurrentDictionary<String, Byte[]> AppIcons = new ConcurrentDictionary<String, Byte[]>();
+
+                private const Int32 LineLength = 9;
 
         // Session keys keep the bubble and name area in the same place, whatever the name's length.
         // The bubble is nearly square, sized for a single-digit count like 3/5. Its tail ends just above the name.
@@ -55,6 +71,43 @@ namespace Loupedeck.KeyboPlugin
 
         public static BitmapImage Control(PluginImageSize imageSize, String icon, String label) =>
             DrawControl(imageSize, icon, label, Text, Surface);
+
+        // Dictate while an app is recording: the usual key, with faint red sound arcs either side of the mic that ripple
+        // outwards, inner arcs first. Each frame sets how bright each pair is, from 0 (not drawn) to 1.
+        public static BitmapImage Listening(PluginImageSize imageSize, String label, Int32 frame)
+        {
+            using (var builder = new BitmapBuilder(imageSize))
+            {
+                var scale = (Single)builder.Width / DesignSize;
+                var pixels = builder.Width;
+                var arcs = Arc(ListeningWave[frame % ListeningFrames], "M37 22Q30 32 37 42M79 22Q86 32 79 42")
+                    + Arc(ListeningWave[(frame + ListeningFrames - 2) % ListeningFrames], "M29 16Q19 32 29 48M87 16Q97 32 87 48");
+
+                builder.Clear(BitmapColor.FromRgb(Surface));
+                builder.DrawImage(BitmapImage.FromSvg($"<svg xmlns='http://www.w3.org/2000/svg' width='{pixels}' height='{pixels}' viewBox='0 0 {DesignSize} {DesignSize}'>{arcs}{KeepColor}</svg>"), 0, 0, pixels, pixels);
+                DrawIcon(builder, MicIcon, Text, 33, 12, 50, scale);
+                builder.DrawText(label, 0, Scaled(74, scale), builder.Width, Scaled(32, scale), BitmapColor.FromRgb(Text), Scaled(19, scale));
+                return builder.ToImage();
+            }
+        }
+
+        // Return while an app is recording: the usual key with a small soft red dot in the top corner, pulsing in step
+        // with Dictate's inner arcs. It dims but never quite goes out.
+        public static BitmapImage ControlWithDot(PluginImageSize imageSize, String icon, String label, Int32 frame)
+        {
+            using (var builder = new BitmapBuilder(imageSize))
+            {
+                var scale = (Single)builder.Width / DesignSize;
+                var pixels = builder.Width;
+                var dot = Fade(ListeningRed, 0.3 + (0.7 * ListeningWave[frame % ListeningFrames]));
+
+                builder.Clear(BitmapColor.FromRgb(Surface));
+                builder.DrawImage(BitmapImage.FromSvg($"<svg xmlns='http://www.w3.org/2000/svg' width='{pixels}' height='{pixels}' viewBox='0 0 {DesignSize} {DesignSize}'><circle cx='100' cy='16' r='5' fill='{Hex(dot)}' stroke='none'/>{KeepColor}</svg>"), 0, 0, pixels, pixels);
+                DrawIcon(builder, icon, Text, 33, 12, 50, scale);
+                builder.DrawText(label, 0, Scaled(74, scale), builder.Width, Scaled(32, scale), BitmapColor.FromRgb(Text), Scaled(19, scale));
+                return builder.ToImage();
+            }
+        }
 
         public static BitmapImage EmptySessionKey(PluginImageSize imageSize) =>
             DrawControl(imageSize, PinHereIcon, "Pin here", Dim, Off);
@@ -131,44 +184,95 @@ namespace Loupedeck.KeyboPlugin
                 builder.Clear(BitmapColor.FromRgb(GetBackground(session.Status)));
                 DrawBubble(builder, session, dotFrame, scale);
                 builder.DrawText(FitName(session.Name), 0, Scaled(NameTop, scale), builder.Width, Scaled(NameHeight, scale), BitmapColor.FromRgb(GetTextColor(session.Status)), Scaled(NameFontSize, scale), Scaled(NameLineHeight, scale));
+
+                if (AppIconFor(session) is Byte[] icon)
+                {
+                    builder.DrawImage(icon, Scaled(AppIconLeft, scale), Scaled(AppIconTop, scale), Scaled(AppIconSize, scale), Scaled(AppIconSize, scale));
+                }
                 return builder.ToImage();
             }
         }
 
         // The bubble is wide on every key, so it sits the same on all of them whatever is inside.
+        // A Teams chat has the same bubble as a session: empty and grey when read; on green (a new message), dark with a
+        // green dot, since a message isn't "done".
         private static void DrawBubble(BitmapBuilder builder, SessionInfo session, Int32 dotFrame, Single scale)
         {
+            if (session.IsSafari)
+            {
+                DrawBrowserWindow(builder, Muted, scale);
+                return;
+            }
+
+            if (session.IsTeams)
+            {
+                if (session.Status == SessionStatus.Done)
+                {
+                    DrawWideBubble(builder, NewMessageDot, Ink, Ink, scale);
+                }
+                else
+                {
+                    DrawWideBubble(builder, String.Empty, Muted, null, scale);
+                }
+
+                return;
+            }
+
             switch (session.Status)
             {
                 case SessionStatus.Busy when session.Progress != null:
-                    DrawWideBubble(builder, session.IsCodex, String.Empty, Blue, null, scale);
+                    DrawWideBubble(builder, String.Empty, Blue, null, scale);
                     DrawCount(builder, $"{session.Progress.Step}/{session.Progress.Steps}", dotFrame == 2 ? DimBlue : Blue, scale);
                     break;
                 case SessionStatus.Busy:
-                    DrawWideBubble(builder, session.IsCodex, Dots(dotFrame, Blue, UnlitDot), Blue, null, scale);
+                    DrawWideBubble(builder, Dots(dotFrame, Blue, UnlitDot), Blue, null, scale);
                     break;
                 case SessionStatus.Background:
-                    DrawWideBubble(builder, session.IsCodex, Dots(dotFrame, Blue, UnlitDot), Muted, null, scale);
+                    DrawWideBubble(builder, Dots(dotFrame, Blue, UnlitDot), Muted, null, scale);
                     break;
                 case SessionStatus.Waiting:
-                    DrawWideBubble(builder, session.IsCodex, Stroked(QuestionMark, Amber), Ink, Ink, scale);
+                    DrawWideBubble(builder, Stroked(QuestionMark, Amber), Ink, Ink, scale);
                     break;
                 case SessionStatus.Done:
-                    DrawWideBubble(builder, session.IsCodex, Stroked(CheckMark, Green), Ink, Ink, scale);
+                    DrawWideBubble(builder, Stroked(CheckMark, Green), Ink, Ink, scale);
                     break;
                 case SessionStatus.Idle:
-                    DrawWideBubble(builder, session.IsCodex, String.Empty, Muted, null, scale);
+                    DrawWideBubble(builder, String.Empty, Muted, null, scale);
                     break;
                 default:
-                    DrawWideBubble(builder, session.IsCodex, String.Empty, Dim, null, scale);
+                    DrawWideBubble(builder, String.Empty, Dim, null, scale);
                     break;
             }
         }
 
         // The outline is drawn at key size. What goes inside uses the 24-unit icon grid, a little larger than
         // the icons, with its centre on the bubble's centre.
-        // Codex bubbles point their tail right, so you can tell them from Claude's at a glance.
-        private static void DrawWideBubble(BitmapBuilder builder, Boolean tailRight, String inside, UInt32 color, UInt32? fill, Single scale)
+        // A Safari tab: a small browser window the size of the speech bubble, with a toolbar line and three dots.
+        private static void DrawBrowserWindow(BitmapBuilder builder, UInt32 color, Single scale)
+        {
+            const Single left = ((DesignSize - BubbleWidth) / 2f) + (BubbleStroke / 2);
+            const Single right = ((DesignSize + BubbleWidth) / 2f) - (BubbleStroke / 2);
+            const Single top = BubbleTop;
+            const Single bottom = BubbleBottom;
+            const Single toolbar = top + 9;
+            var width = Scaled(DesignSize, scale);
+            var height = Scaled(BubbleAreaHeight, scale);
+            var dots = String.Empty;
+
+            for (var dot = 0; dot < 3; dot++)
+            {
+                dots += FormattableString.Invariant($"<circle cx='{left + 5.5f + (dot * 4.5f)}' cy='{top + 4.7f}' r='1.5' fill='{Hex(color)}' stroke='none'/>");
+            }
+
+            var svg = FormattableString.Invariant(
+                $"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='{height}' viewBox='0 0 {DesignSize} {BubbleAreaHeight}' fill='none' stroke='{Hex(color)}' stroke-width='{BubbleStroke}' stroke-linecap='round' stroke-linejoin='round'>") +
+                FormattableString.Invariant($"<rect x='{left}' y='{top}' width='{right - left}' height='{bottom - top}' rx='{BubbleCorner}'/><path d='M{left} {toolbar}H{right}'/>") +
+                $"{dots}{KeepColor}</svg>";
+
+            builder.DrawImage(BitmapImage.FromSvg(svg), 0, 0, width, height);
+        }
+
+        private static void DrawWideBubble(BitmapBuilder builder, String inside, UInt32 color, UInt32? fill, Single scale)
         {
             const Single left = ((DesignSize - BubbleWidth) / 2f) + (BubbleStroke / 2);
             const Single right = ((DesignSize + BubbleWidth) / 2f) - (BubbleStroke / 2);
@@ -184,7 +288,7 @@ namespace Loupedeck.KeyboPlugin
             var height = Scaled(BubbleAreaHeight, scale);
             var svg = FormattableString.Invariant(
                 $"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='{height}' viewBox='0 0 {DesignSize} {BubbleAreaHeight}' fill='none' stroke='{Hex(color)}' stroke-linecap='round' stroke-linejoin='round'>") +
-                FormattableString.Invariant($"<path d='{outline}' fill='{(fill.HasValue ? Hex(fill.Value) : "none")}' stroke-width='{BubbleStroke}'{(tailRight ? $" transform='translate({DesignSize} 0) scale(-1 1)'" : String.Empty)}/>") +
+                FormattableString.Invariant($"<path d='{outline}' fill='{(fill.HasValue ? Hex(fill.Value) : "none")}' stroke-width='{BubbleStroke}'/>") +
                 FormattableString.Invariant($"<g transform='translate({(DesignSize / 2f) - (12 * InsideScale)} {middle - (11 * InsideScale)}) scale({InsideScale})' stroke-width='{BubbleStroke / InsideScale}'>{inside}</g>{KeepColor}</svg>");
 
             builder.DrawImage(BitmapImage.FromSvg(svg), 0, 0, width, height);
@@ -205,7 +309,24 @@ namespace Loupedeck.KeyboPlugin
             builder.DrawImage(BitmapImage.FromSvg(svg), Scaled(x, scale), Scaled(y, scale), pixels, pixels);
         }
 
-        private static String Stroked(String body, UInt32 color) => $"<g stroke='{Hex(color)}'>{body}</g>";
+        private static Byte[] AppIconFor(SessionInfo session)
+        {
+            var app = session.IsSafari ? "/Applications/Safari.app" : session.IsTeams ? "/Applications/Microsoft Teams.app" : session.IsCodex ? "/Applications/ChatGPT.app" : "/Applications/Claude.app";
+            return AppIcons.GetOrAdd(app, path => Directory.Exists(path) ? Mac.AppIcon(path, AppIconPixels) : null);
+        }
+
+                private static String Stroked(String body, UInt32 color) => $"<g stroke='{Hex(color)}'>{body}</g>";
+
+        private static String Arc(Double brightness, String path) => brightness <= 0
+            ? String.Empty
+            : $"<path d='{path}' fill='none' stroke='{Hex(Fade(ListeningRed, brightness))}' stroke-width='3' stroke-linecap='round'/>";
+
+        // A colour part of the way from the key's background to this one.
+        private static UInt32 Fade(UInt32 color, Double amount)
+        {
+            UInt32 Channel(Int32 shift) => (UInt32)Math.Round((((Surface >> shift) & 0xFF) * (1 - amount)) + (((color >> shift) & 0xFF) * amount)) << shift;
+            return Channel(16) | Channel(8) | Channel(0);
+        }
 
         private static String Dots(Int32 litDot, UInt32 lit, UInt32 unlit, Single centre = 12, Single gap = 5, Single radius = 1.6f)
         {

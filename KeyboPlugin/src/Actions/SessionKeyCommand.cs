@@ -1,6 +1,7 @@
 namespace Loupedeck.KeyboPlugin
 {
     using System;
+    using System.Linq;
     using System.Threading;
 
     // A key you lock to any session. Tap an empty key to lock the session on screen, tap a locked key to open its
@@ -37,6 +38,7 @@ namespace Loupedeck.KeyboPlugin
         protected override Boolean OnLoad()
         {
             this._locks = new SessionKeyLocks(this.Plugin.GetPluginDataDirectory(), KeyCount);
+            this.WatchTeams();
             this.Sessions.Changed += this.OnSessionsChanged;
             this._menu = new HoldMenu(() => this.ActionImageChanged(this._menuKey.ToString()));
             this._dots = new Timer(_ => this.AdvanceDots(), null, DotMilliseconds, DotMilliseconds);
@@ -119,6 +121,7 @@ namespace Loupedeck.KeyboPlugin
             if (current != null)
             {
                 this._locks.Lock(key, current.Id);
+                this.WatchTeams();
                 this.RedrawAll();
             }
         }
@@ -126,8 +129,12 @@ namespace Loupedeck.KeyboPlugin
         private void Clear(Int32 key)
         {
             this._locks.Clear(key);
+            this.WatchTeams();
             this.RedrawAll();
         }
+
+        private void WatchTeams() =>
+            this.Sessions.WatchTeams(Enumerable.Range(0, KeyCount).Select(this._locks.Get).Where(id => id != null).ToList());
 
         private void OnSessionsChanged()
         {

@@ -44,14 +44,14 @@ In Logi Options+ the keys come in four groups.
 
 | Key | Tap | Hold |
 |---|---|---|
-| Session key 1–6 | Open that session (Claude or Codex). Empty: pin the session on screen | Choose: Pin here, Unpin |
-| Dictate | Start or stop dictation in the app in front: Claude's mic in Claude, ChatGPT's dictation anywhere else | — |
-| Return | Press Return in the app in front: sends, or finishes dictation | — |
+| Session key 1–6 | Open that session (Claude, Codex, a Teams chat or a Safari tab). Empty: pin the session on screen | Choose: Pin here, Unpin |
+| Dictate | Start or stop dictation in the app in front: Claude's mic in Claude, ChatGPT's dictation anywhere else. Faint red arcs ripple round the mic while either is recording | — |
+| Return | Press Return in the app in front: sends, or finishes dictation. A soft red dot shows while you're dictating | — |
 | Cancel | Press Escape in the app in front: cancels dictation or interrupts | Choose: Archive |
 | Usage | Switch between your 5-hour and weekly limits | — |
 
 Session key colours: blue dots = working, amber = waiting for you, green = finished, grey = idle.
-Codex bubbles point right.
+A small icon on the bubble's top-right corner shows the app: Claude, ChatGPT for Codex, or Teams. A Teams chat turns green with a dot when it has a new message: pin it with Teams in front and the chat open, and a tap opens it again. Unread only updates while Teams shows its Chat view. Teams keys need Logi Plugin Service allowed under Privacy & Security > Accessibility. A Safari tab shows a small browser window and its title: pin it with Safari in front, and a tap switches back to it, or opens it again if it was closed. The first time, macOS asks to let Logi Plugin Service control Safari: choose OK.
 
 **Hold to choose.** Hold a session key or Cancel and the key itself steps through its choices, about a second each;
 let go on the one you want. A session key offers Pin here (the session on screen goes on that key), then Unpin, then

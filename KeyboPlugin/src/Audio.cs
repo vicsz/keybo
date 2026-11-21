@@ -77,15 +77,15 @@ namespace Loupedeck.KeyboPlugin
             }
         }
 
-        // True if an app whose process name starts with this is recording. False if CoreAudio can't say.
-        public static Boolean IsRecording(String processPrefix)
+        // True if an app whose process name starts with one of these is recording. False if CoreAudio can't say.
+        public static Boolean IsRecording(params String[] processPrefixes)
         {
             try
             {
                 return GetArray(SystemObject, Code("prs#"))
                     .Where(p => GetArray(p, Code("piri")).FirstOrDefault() != 0)
-                    .Select(p => (Int32)GetArray(p, Code("ppid")).FirstOrDefault())
-                    .Any(pid => ProcessName(pid).StartsWith(processPrefix, StringComparison.Ordinal));
+                    .Select(p => ProcessName((Int32)GetArray(p, Code("ppid")).FirstOrDefault()))
+                    .Any(name => processPrefixes.Any(prefix => name.StartsWith(prefix, StringComparison.Ordinal)));
             }
             catch (Exception ex) when (ex is DllNotFoundException || ex is EntryPointNotFoundException)
             {

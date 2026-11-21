@@ -31,13 +31,13 @@ sums up the Mac and the Claude and Codex sessions. Around it: session keys with 
 8. To uninstall: `dotnet clean` in `KeyboPlugin/` removes the link.
 
 ## Code map (`KeyboPlugin/src/`)
-- `KeyboPlugin.cs`: owns what keys share: `SystemMonitor`, `KeepAwake`, `Pomodoro`, `ClaudeSessionStore` (started on load), `ClaudeUsage` (started by the first Usage draw) and the `MessageSent` event (Return sent). Keys never talk to each other directly; they go through these.
+- `KeyboPlugin.cs`: owns what keys share: `SystemMonitor`, `KeepAwake`, `Pomodoro`, `ClaudeSessionStore` and `Dictation` (started on load), `ClaudeUsage` (started by the first Usage draw) and the `MessageSent` event (Return sent). Keys never talk to each other directly; they go through these.
 - `Actions/`: one file per key. `StatCommand.cs` is what the stat keys share; `ShortcutCommand.cs` what Dictate, Return and Cancel share. Action class names are what placed keys remember, so they keep their first names (`PetCommand`, `GoCommand`, `StopCommand`, `InternetCommand`, `DiskCommand`); display names and groups are free to change.
 - `Groups.cs`: the four Options+ groups: Agents, System, Tools, Pets.
 - `TapOrHold.cs`: tap versus hold, the same on every key with both (session keys, Cancel, Pomodoro, Keybo): taps act on release, a hold starts at LongPress, and keys that only get `RunCommand` treat it as a tap.
 - `HoldMenu.cs`: hold to choose, on the held key itself: from LongPress it steps through choices a second each, release picks the one showing, and the last is always Never mind. Session keys (Pin here, Unpin) and Cancel (Archive) use it. No key ever draws for another, so it works on any page and layout.
 - `Shell.cs`: every command the plugin starts (open, afplay, lsappinfo, ps, sqlite3, security, the Claude CLI), with a timeout. It never logs what a command prints.
-- `KeyArt.cs`: draws the keys: shared colours, the stat keys' label, value, graph and bar, and Keybo with his sign (`KeyArt.Pet`). `AgentArt.cs` is the other half of the same class: session keys, Usage, the shortcut keys and hold choices.
+- `KeyArt.cs`: draws the keys: shared colours, the stat keys' label, value, graph and bar, and Keybo with his sign (`KeyArt.Pet`). `AgentArt.cs` is the other half of the same class: session keys, Usage, the shortcut keys and hold choices. Session keys carry their app's real icon on the bubble's top-right corner (Claude, ChatGPT for Codex, Teams), read from `/Applications` at run time with `Mac.AppIcon`, so no logos are in the repo.
 
 Keybo (the Keybo key, group Pets; the class is still `PetCommand`):
 - `PetMood.cs`: what he shows, worst first: Mac red > session waiting > Pomodoro done > session done > Mac amber > offline > live (an app recording from the mic, not muted) > focus (a Pomodoro running) > sleepy (10 min without input) > idle. Sessions come straight from `ClaudeSessionStore.All`. Memory counts only at critical pressure (4), because macOS sits at 2 for hours, and shows as `walls`, kept 10 s after it drops so they don't flap. A tap sets the sign aside: a session until it leaves that state, the Pomodoro until it's cleared, a Mac problem for 30 minutes. Sign layout: app mark + ! or ✓ + count.
@@ -54,6 +54,8 @@ Keybo (the Keybo key, group Pets; the class is still `PetCommand`):
 Claude and Codex:
 - `ClaudeSessionStore.cs`: reads every session's status every 2 seconds, and opens one (`Open`, which also clears its green). All Claude file knowledge stays here.
 - `CodexThreads.cs`: the same for Codex. All Codex file knowledge stays here.
+- `TeamsChats.cs`: Teams chats on session keys (which chat is open, opening one), through Accessibility. All Teams knowledge stays here. Teams chats never join `ClaudeSessionStore.All`, so Keybo ignores them, and they're never gone.
+- `SafariTabs.cs`: Safari tabs on session keys (the front tab, switching back to one), through Safari's AppleScript. All Safari knowledge stays here. Like Teams chats, tabs never join `ClaudeSessionStore.All` and are never gone.
 - `ClaudeTranscripts.cs`: step count (2/4) for busy sessions, from their task list.
 - `ClaudeUsage.cs`: usage and pace for the Usage key. All usage knowledge stays here.
 - `ClaudeApp.cs`: everything that acts on the Claude window: opening a session, bringing Claude to the front, and which app is in front.
@@ -63,6 +65,7 @@ Mac and tools:
 - `SystemMonitor.cs`: one sampler for the stat keys and Keybo, once a second (temperature every 2 s, busiest app and connection every 5 s, disk and battery every 10 s). Keys call `Use` when drawn; it stops 5 s after the last draw.
 - `Mac.cs`: kernel, Foundation, Wi-Fi, AppKit and CoreGraphics calls (Mach host statistics, sysctl, disk space, CoreWLAN, app icons, seconds since last input).
 - `Sensors.cs`: IOKit hardware readings: GPU, disk traffic, temperatures, battery.
+- `Dictation.cs`: whether Claude or ChatGPT is recording, shared by Dictate and Return (started on load).
 - `Audio.cs`: CoreAudio: the default microphone (in use, muted, muting it) for Mic, and which apps are recording for Dictate.
 - `KeepAwake.cs`: keeps the Mac and its screen on, with no lock: an IOKit `PreventUserIdleDisplaySleep` assertion (like `caffeinate -d`) plus `IOPMAssertionDeclareUserActivity` every 30 s (like `caffeinate -u`), so screen saver and lock timers never run out. macOS drops both if the plugin exits. `KeepAwakeCommand` steps the cup's steam every 240 ms, only while on.
 - `Pomodoro.cs`: the 25-minute timer (ready, running, paused, done), ticking only while running. `PomodoroCommand` draws it; Keybo watches `IsDone`, `IsRunning` and `Finished`.
@@ -83,7 +86,7 @@ Mac and tools:
 - Busiest app: `ps -Axo pcpu=,comm=`, grouped by the first `.app` in each path. Icon: `NSWorkspace iconForFile:` on that `.app`, turned into a PNG and cached per app.
 - Disk activity: `IOBlockStorageDriver` registry property `Statistics` → `Bytes (Read)` and `Bytes (Write)`, summed over drivers, deltas between samples.
 - Mic: CoreAudio on the default input device (`dIn `): `gone` (running somewhere) for in use; `mute` on the input scope, or input `volm` when there's no mute switch.
-- Recording apps (Dictate): CoreAudio `prs#` lists audio processes, `piri` says one is recording, `ppid` is its PID (macOS 14.2 or later). It never listens to the mic.
+- Recording apps (Dictate): CoreAudio `prs#` lists audio processes, `piri` says one is recording, `ppid` is its PID (macOS 14.2 or later). It never listens to the mic. `Dictation.cs` checks every 0.6 s for a process named `Claude…` or `Codex…`; while one records, Dictate ripples its arcs and Return shows a dot, on one shared frame.
 - GPU: `IOAccelerator` registry property `PerformanceStatistics` → `Device Utilization %`.
 - CPU temp: private HID sensor API (`IOHIDEventSystemClient`, usage page 0xFF00, usage 5), average of sensors named `PMU tdie*`. Checked on an M4 Mac mini.
 - Battery: `IOPSCopyPowerSourcesInfo`, the source whose `Type` is `InternalBattery`.
@@ -102,6 +105,18 @@ Mac and tools:
   month resets 00:00 UTC on the 1st). Plans fill `limits[]` (`percent`, `severity`, `resets_at`, `is_active`). `claude -p /usage` refreshes an
   expired token without calling a model; `claude auth status` doesn't. Never print or log the token.
 - Shortcuts: Dictate `Cmd+D`, Archive `Cmd+Opt+A`.
+
+## Teams (undocumented, can change with any update)
+- No local API: its third-party device API is switched off by policy here. Everything goes through Accessibility, and reads only the chat list's structure, never message text.
+- Teams' web view builds its accessibility tree only after `AXManualAccessibility` is set on the `MSTeams` app (it returns an error but works).
+- Main window title `Chat | <names>`; chat rows are `AXRow`s titled `Chat …`, `Group chat …` or `Meeting chat …` (unread ones start `Unread message …`), nested inside section rows. The list exists only while Teams shows its Chat view. Muted chats don't count in the Dock badge. A descendant's DOM ID `title-chat-list-item_<chat ID>` holds the chat ID (`19:…@unq.gbl.spaces` or `19:…@thread.v2`). The open chat's row has its own `AXDOMClassList`; `AXSelected` is always false. Rows have no press action.
+- Open a chat: `msteams:/l/chat/<chat ID>/0` (brings Teams forward). A pinned chat's key ID is `teams:<chat ID>|<name>`.
+- English UI only: the title and row prefixes are matched as text.
+
+## Safari
+- AppleScript (`osascript`): `URL` and `name` of `current tab of front window` when pinning, read only while Safari is in front so it never starts Safari. A tap looks through every window's tabs for the pinned address, then the same page (address up to `?` or `#`, since pages rewrite their query), then the same title; it makes that tab current and raises its window, and only if none matches opens the address in a new tab. Needs Automation permission for Logi Plugin Service (asked once).
+- A pinned tab's key ID is `safari:<address>\n<title>`. Only http and https addresses. Never log either.
+- Safari's own data (`~/Library/Safari`, including site icons) is locked by macOS, so keys show no site icons.
 
 ## Codex (undocumented)
 - Threads: `~/.codex/state_5.sqlite`. Logs: `~/Library/Logs/com.openai.codex`.
