@@ -4,8 +4,9 @@ namespace Loupedeck.KeyboPlugin
     using System.Globalization;
 
     // Shows how much Claude you have left and whether you're on track. The ring starts full and drains, the white tick
-    // is where an even pace would leave you today, and the colour is the forecast. Tap to switch between the 5-hour
-    // and weekly limits. It checks every 5 minutes; tapping never calls the server.
+    // is where an even pace would leave you today, and the colour is the forecast. In the red, the footer says when
+    // you'd run out. Tap to switch between the 5-hour and weekly limits. It checks every 5 minutes; tapping never calls
+    // the server.
 
     public class UsageCommand : PluginDynamicCommand
     {
@@ -45,29 +46,17 @@ namespace Loupedeck.KeyboPlugin
 
             var left = Math.Max(0, reading.Limit - reading.Used);
             var amount = reading.IsDollars ? Dollars(left) : $"{left:0}%";
-            var footer = pace.Tone == UsageTone.Stale ? Age(reading.FetchedAt)
-                : reading.IsDollars ? $"left of {Dollars(reading.Limit)}" : $"left · {reading.Label}";
+            var runsOut = RunsOut(reading, pace);
+            var footer = runsOut ?? (pace.Tone == UsageTone.Stale ? Age(reading.FetchedAt)
+                : reading.IsDollars ? $"left of {Dollars(reading.Limit)}" : $"left · {reading.Label}");
 
-            return KeyArt.Usage(imageSize, left / reading.Limit, 1 - pace.TimeGone, pace.Tone, amount, Line(reading, pace), footer);
+            return KeyArt.Usage(imageSize, left / reading.Limit, 1 - pace.TimeGone, pace.Tone, amount, footer, footerWarns: runsOut != null);
         }
 
-        // One short line: when you'd run out, how far over an even pace you are, or how much you have spare.
-        private static String Line(UsageReading reading, UsagePace pace)
-        {
-            if (pace.Tone == UsageTone.Bad && pace.RunsOut is DateTime runsOut)
-            {
-                return "out ~" + When(runsOut, reading.PeriodEnd - reading.PeriodStart);
-            }
-
-            var ahead = reading.IsDollars ? Dollars(Math.Abs(pace.Ahead)) : $"{Math.Abs(pace.Ahead):0}%";
-
-            if (Math.Abs(pace.Ahead) < reading.Limit * 0.02)
-            {
-                return "on pace";
-            }
-
-            return pace.Ahead > 0 ? $"{ahead} over" : $"{ahead} spare";
-        }
+        // In the red, when you'd run out. It takes the footer's place, and its format still says which limit it is:
+        // a time for 5 hours, a day for the week, a date for a month.
+        private static String RunsOut(UsageReading reading, UsagePace pace) =>
+            pace.Tone == UsageTone.Bad && pace.RunsOut is DateTime runsOut ? "out ~" + When(runsOut, reading.PeriodEnd - reading.PeriodStart) : null;
 
         // A month shows the date, a week the day and hour, five hours the time.
         private static String When(DateTime utc, TimeSpan period)

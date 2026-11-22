@@ -130,8 +130,11 @@ namespace Loupedeck.KeyboPlugin
         }
 
         // The usage ring: the arc is how much is left, and the white tick is where an even pace would leave you.
-        // The arc and the line under the amount take the forecast's colour. The ring is drawn at key size.
-        public static BitmapImage Usage(PluginImageSize imageSize, Double left, Double pace, UsageTone tone, String amount, String line, String footer)
+        // The arc takes the forecast's colour, and so does the footer when it's a warning. The amount sits in the middle
+        // of the ring, a size smaller when it's four characters or more (100%, $150) so it clears the ring. DrawText sets
+        // digits above the middle of their box, so the box starts lower: measured on rendered keys, that puts the digits
+        // on the ring's centre to within half a pixel. The ring is drawn at key size.
+        public static BitmapImage Usage(PluginImageSize imageSize, Double left, Double pace, UsageTone tone, String amount, String footer, Boolean footerWarns)
         {
             const Single cx = 58, cy = 50, r = 37, stroke = 8;
             var circumference = 2 * MathF.PI * r;
@@ -139,6 +142,7 @@ namespace Loupedeck.KeyboPlugin
             var arc = (Single)Math.Clamp(left, 0, 1) * circumference;
             var angle = (Single)Math.Clamp(pace, 0, 1) * 2 * MathF.PI;
             var (sin, cos) = MathF.SinCos(angle);
+            var (amountSize, amountTop) = amount.Length > 3 ? (22, 36) : (26, 37);
 
             using (var builder = new BitmapBuilder(imageSize))
             {
@@ -153,9 +157,8 @@ namespace Loupedeck.KeyboPlugin
 
                 builder.Clear(BitmapColor.FromRgb(Surface));
                 builder.DrawImage(BitmapImage.FromSvg(svg), 0, 0, pixels, pixels);
-                builder.DrawText(amount, 0, Scaled(28, scale), builder.Width, Scaled(26, scale), BitmapColor.FromRgb(tone == UsageTone.Stale ? Muted : Text), Scaled(22, scale));
-                builder.DrawText(line, 0, Scaled(53, scale), builder.Width, Scaled(14, scale), BitmapColor.FromRgb(color), Scaled(10, scale));
-                builder.DrawText(footer, 0, Scaled(94, scale), builder.Width, Scaled(18, scale), BitmapColor.FromRgb(Muted), Scaled(13, scale));
+                builder.DrawText(amount, 0, Scaled(amountTop, scale), builder.Width, Scaled(32, scale), BitmapColor.FromRgb(tone == UsageTone.Stale ? Muted : Text), Scaled(amountSize, scale));
+                builder.DrawText(footer, 0, Scaled(94, scale), builder.Width, Scaled(18, scale), BitmapColor.FromRgb(footerWarns ? color : Muted), Scaled(14, scale));
                 return builder.ToImage();
             }
         }

@@ -60,8 +60,9 @@ key to open it, then hold Cancel.
 
 **Usage** shows how much of your Claude limit is left and whether you're on track. The ring is what's left, and the
 white tick is where an even pace would leave you today. The colour is the forecast: green, you'll finish under; amber,
-faster than an even pace; red, you'll run out before it resets; grey, the number is out of date. Plans show the 5-hour
-limit, and a tap switches to the week and back; if the week heads for red, the key shows it even on the 5-hour view.
+faster than an even pace; red, you'll run out before it resets, and the line under the ring says roughly when; grey,
+the number is out of date. Plans show the 5-hour limit, and a tap switches to the week and back; if the week heads
+for red, the key shows it even on the 5-hour view.
 Monthly spend-limit accounts show dollars. It checks every 5 minutes and needs the Claude CLI signed in
 (`claude auth login`). The first time, macOS asks to let `security` read "Claude Code-credentials": choose
 **Always Allow**. Keybo only reads that sign-in while a Usage key is on the keypad, and never saves or logs it.

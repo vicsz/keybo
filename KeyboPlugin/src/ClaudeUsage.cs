@@ -21,8 +21,9 @@ namespace Loupedeck.KeyboPlugin
     // Used and Limit are dollars on accounts with a spend limit, otherwise percent of the plan limit (Limit = 100).
     public record UsageReading(Boolean IsDollars, Double Used, Double Limit, DateTime PeriodStart, DateTime PeriodEnd, String Severity, String Label, DateTime FetchedAt);
 
-    // Where you stand against an even pace through the period. Ahead is how far over that pace you are (negative = spare).
-    public record UsagePace(Double TimeGone, Double Ahead, DateTime? RunsOut, UsageTone Tone);
+    // Where you stand against an even pace through the period: how much of it has gone, when you'd run out at this rate
+    // (only if that's before it resets), and the forecast.
+    public record UsagePace(Double TimeGone, DateTime? RunsOut, UsageTone Tone);
 
     public sealed class ClaudeUsage : IDisposable
     {
@@ -160,7 +161,7 @@ namespace Loupedeck.KeyboPlugin
                 tone = (UsageTone)Math.Max((Int32)tone, (Int32)floor);
             }
 
-            return new UsagePace(timeGone, ahead, runsOut < reading.PeriodEnd ? runsOut : null, tone);
+            return new UsagePace(timeGone, runsOut < reading.PeriodEnd ? runsOut : null, tone);
         }
 
         // The recent rate: the last 7 days of this period when there's enough history, otherwise the average so far.
