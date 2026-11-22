@@ -69,8 +69,14 @@ namespace Loupedeck.KeyboPlugin
 
         public History DiskWriteHistory { get; } = new History();
 
-        // The default microphone: whether there is one, whether an app is using it, and whether it's muted.
-        public MicState Mic { get; private set; }
+        // The default microphone: whether there is one, whether an app is recording from it, and whether it's muted.
+        public AudioState Mic { get; private set; }
+
+        // The icon of the app recording from the mic as a PNG, or null when none is or it isn't an app.
+        public Byte[] MicAppIcon { get; private set; }
+
+        // The default sound output: whether there is one, whether an app is playing through it, whether it's muted, and its volume.
+        public AudioState Sound { get; private set; }
 
         public AppUsage TopApp { get; private set; }
 
@@ -153,6 +159,8 @@ namespace Loupedeck.KeyboPlugin
                 this.ReadNetwork();
                 this.ReadDiskActivity();
                 this.Mic = Audio.Mic();
+                this.MicAppIcon = this.Mic.UsedBy == null ? null : this.Icon(AppName(this.Mic.UsedBy).Path);
+                this.Sound = Audio.Sound();
 
                 this.Gpu = Sensors.GpuLoad();
                 this.GpuHistory.Add(this.Gpu ?? 0);
@@ -278,6 +286,14 @@ namespace Loupedeck.KeyboPlugin
             this.Changed?.Invoke();
         }
 
+        // The same for the default sound output.
+        public void SetSoundMuted(Boolean muted)
+        {
+            Audio.SetSoundMuted(muted);
+            this.Sound = Audio.Sound();
+            this.Changed?.Invoke();
+        }
+
         // Ethernet and Wi-Fi with their link speeds. Both can be connected at once.
         private void ReadLinks()
         {
@@ -345,7 +361,7 @@ namespace Loupedeck.KeyboPlugin
             FormattableString.Invariant($"top {this.TopApp?.Name} {this.TopApp?.Cpu:0}%, ") +
             FormattableString.Invariant($"GPU {this.Gpu:0}%, CPU {this.CpuTemperature:0}°C, battery {this.Battery?.Percent:0}%, ") +
             FormattableString.Invariant($"Ethernet {this.EthernetSpeed / 1e6:0} Mb/s, Wi-Fi {this.WifiSpeed / 1e6:0} Mb/s SNR {this.WifiSnr} dB, ") +
-            FormattableString.Invariant($"disk read {this.DiskRead / 1e3:0} KB/s write {this.DiskWrite / 1e3:0} KB/s, mic {this.Mic}"));
+            FormattableString.Invariant($"disk read {this.DiskRead / 1e3:0} KB/s write {this.DiskWrite / 1e3:0} KB/s, mic {this.Mic}, sound {this.Sound}"));
     }
 
     public class AppUsage

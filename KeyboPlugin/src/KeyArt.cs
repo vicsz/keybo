@@ -22,6 +22,9 @@ namespace Loupedeck.KeyboPlugin
         // How many frames the cup's steam takes to loop.
         public const Int32 SteamFrames = 10;
 
+        // How far the speaker's sound waves reach above and below its middle.
+        private const Single WaveSpread = MathF.PI * 40 / 180;
+
         private const UInt32 Surface = 0x11161E;
         private const Int32 DesignSize = 116;
         private const String Semibold = "Helvetica Neue Medium";
@@ -126,10 +129,33 @@ namespace Loupedeck.KeyboPlugin
             var mic = FormattableString.Invariant($"<rect x='{x - 6}' y='{y - 17}' width='12' height='20' rx='6' fill='{Hex(color)}'/>") +
                 $"<path d='M{At(-11, -3)} a11,11 0 0 0 22,0 M{At(0, 8)} v7 M{At(-6, 15)} h12' {line}/>";
 
-            return !muted ? mic : mic +
-                $"<path d='M{At(-15, -17)} L{At(15, 15)}' stroke='{Hex(Surface)}' stroke-width='7' stroke-linecap='round'/>" +
-                $"<path d='M{At(-15, -17)} L{At(15, 15)}' stroke='{Hex(color)}' stroke-width='3' stroke-linecap='round'/>";
+            return !muted ? mic : mic + Slash(x, y, color);
         }
+
+        // A speaker centred on x with its middle at y, facing right, the mic's size, with three sound waves in waveColor.
+        // With a frame, the waves ripple outwards like Dictate's arcs and never quite go out. Muted draws the mic's slash.
+        public static String Speaker(Single x, Single y, UInt32 color, UInt32 waveColor, Boolean muted, Int32? rippleFrame)
+        {
+            String At(Single dx, Single dy) => FormattableString.Invariant($"{x + dx:0.#},{y + dy:0.#}");
+            var speaker = $"<path d='M{At(-18, -5)} L{At(-11, -5)} L{At(-1, -14)} L{At(-1, 14)} L{At(-11, 5)} L{At(-18, 5)} Z' " +
+                $"fill='{Hex(color)}' stroke='{Hex(color)}' stroke-width='2' stroke-linejoin='round'/>";
+
+            for (var wave = 0; wave < 3; wave++)
+            {
+                var radius = 8 + (6 * wave);
+                var (dx, dy) = (radius * MathF.Cos(WaveSpread), radius * MathF.Sin(WaveSpread));
+                var brightness = rippleFrame is Int32 frame
+                    ? 0.3 + (0.7 * ListeningWave[(((frame - (2 * wave)) % ListeningFrames) + ListeningFrames) % ListeningFrames])
+                    : 1;
+                speaker += FormattableString.Invariant(
+                    $"<path d='M{At(dx - 1, -dy)} A{radius},{radius} 0 0 1 {At(dx - 1, dy)}' fill='none' stroke='{Hex(Fade(waveColor, brightness))}' stroke-width='3' stroke-linecap='round'/>");
+            }
+
+            return !muted ? speaker : speaker + Slash(x, y, color);
+        }
+
+        // An app's icon in the key's top-right corner, beside the label, as the picture for Key. Null without an icon.
+        public static (Byte[] Png, Int32 X, Int32 Y, Int32 Size)? CornerIcon(Byte[] png) => png == null ? null : (png, 82, 3, 28);
 
         // A small tomato centred on x, y, about 19 across with its leaves on top.
         public static String Tomato(Single x, Single y, UInt32 color, UInt32 leaves)
@@ -306,6 +332,14 @@ namespace Loupedeck.KeyboPlugin
 
         private static String Bang(Single x, Single y, UInt32 color) =>
             FormattableString.Invariant($"<path d='M{x},{y - 6} v6.5' stroke='{Hex(color)}' stroke-width='3' stroke-linecap='round'/><circle cx='{x}' cy='{y + 5}' r='1.8' fill='{Hex(color)}'/>");
+
+        // The slash across a muted mic or speaker centred on x, y, cut out of what's under it.
+        private static String Slash(Single x, Single y, UInt32 color)
+        {
+            String At(Single dx, Single dy) => FormattableString.Invariant($"{x + dx:0.#},{y + dy:0.#}");
+            return $"<path d='M{At(-15, -17)} L{At(15, 15)}' stroke='{Hex(Surface)}' stroke-width='7' stroke-linecap='round'/>" +
+                $"<path d='M{At(-15, -17)} L{At(15, 15)}' stroke='{Hex(color)}' stroke-width='3' stroke-linecap='round'/>";
+        }
 
         public static String Hex(UInt32 color) => $"#{color:X6}";
 

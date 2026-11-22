@@ -4,7 +4,7 @@ namespace Loupedeck.KeyboPlugin
     using System.Runtime.InteropServices;
     using System.Text;
 
-    // Calls into macOS: the kernel, Foundation, Wi-Fi and app icons. IOKit hardware readings are in Sensors.cs.
+    // Calls into macOS: the kernel, Foundation, Wi-Fi, app icons and process paths. IOKit hardware readings are in Sensors.cs.
 
     internal static class Mac
     {
@@ -134,6 +134,14 @@ namespace Loupedeck.KeyboPlugin
             }
         }
 
+        // The executable a process runs, or null once it has gone.
+        public static String ProcessPath(Int32 pid)
+        {
+            var buffer = new Byte[4096];
+            var length = proc_pidpath(pid, buffer, (UInt32)buffer.Length);
+            return length > 0 ? Encoding.UTF8.GetString(buffer, 0, length) : null;
+        }
+
         // An app's icon as a PNG about pixels across, the one Finder shows, or null if macOS has none for it.
         public static Byte[] AppIcon(String appPath, Int32 pixels)
         {
@@ -224,6 +232,9 @@ namespace Loupedeck.KeyboPlugin
 
         [DllImport(System)]
         private static extern Int32 sysctlbyname(String name, ref Int32 value, ref UIntPtr size, IntPtr newValue, UIntPtr newSize);
+
+        [DllImport(System)]
+        private static extern Int32 proc_pidpath(Int32 pid, [Out] Byte[] buffer, UInt32 bufferSize);
 
         [DllImport(ObjC)]
         private static extern IntPtr objc_getClass(String name);

@@ -2,7 +2,7 @@
 
 C# Logi Actions plugin for the MX Creative Keypad (3×3 keys, 2 page buttons). Keybo, a pixel-art robot on his own key,
 sums up the Mac and the Claude and Codex sessions. Around it: session keys with Dictate, Return, Cancel and Usage
-(group Agents), live Mac stats (System), and Mic, Keep awake and Pomodoro (Tools). Keybo himself is in Pets. Read this before changing code.
+(group Agents), live Mac stats (System), and Mic, Sound, Keep awake and Pomodoro (Tools). Keybo himself is in Pets. Read this before changing code.
 
 ## Rules
 - Keep it minimal: no generated, optional, sample or research files.
@@ -63,10 +63,10 @@ Claude and Codex:
 
 Mac and tools:
 - `SystemMonitor.cs`: one sampler for the stat keys and Keybo, once a second (temperature every 2 s, busiest app and connection every 5 s, disk and battery every 10 s). Keys call `Use` when drawn; it stops 5 s after the last draw.
-- `Mac.cs`: kernel, Foundation, Wi-Fi, AppKit and CoreGraphics calls (Mach host statistics, sysctl, disk space, CoreWLAN, app icons, seconds since last input).
+- `Mac.cs`: kernel, Foundation, Wi-Fi, AppKit and CoreGraphics calls (Mach host statistics, sysctl, disk space, CoreWLAN, app icons, process paths, seconds since last input).
 - `Sensors.cs`: IOKit hardware readings: GPU, disk traffic, temperatures, battery.
 - `Dictation.cs`: whether Claude or ChatGPT is recording, shared by Dictate and Return (started on load).
-- `Audio.cs`: CoreAudio: the default microphone (in use, muted, muting it) for Mic, and which apps are recording for Dictate.
+- `Audio.cs`: CoreAudio: the default microphone and sound output (in use, muted, volume, muting them, and the app recording from the mic) for Mic and Sound, and which apps are recording for Dictate. Both keys show four states: free, in use, muted, and amber for muted while in use. `SoundCommand` steps its waves every 200 ms, only while something plays and the key is drawn.
 - `KeepAwake.cs`: keeps the Mac and its screen on, with no lock: an IOKit `PreventUserIdleDisplaySleep` assertion (like `caffeinate -d`) plus `IOPMAssertionDeclareUserActivity` every 30 s (like `caffeinate -u`), so screen saver and lock timers never run out. macOS drops both if the plugin exits. `KeepAwakeCommand` steps the cup's steam every 240 ms, only while on.
 - `Pomodoro.cs`: the 25-minute timer (ready, running, paused, done), ticking only while running. `PomodoroCommand` draws it; Keybo watches `IsDone`, `IsRunning` and `Finished`.
 - `History.cs`: the last 60 samples for graphs.
@@ -85,7 +85,9 @@ Mac and tools:
 - Network: .NET `NetworkInterface` byte counters for `en*` interfaces that are up.
 - Busiest app: `ps -Axo pcpu=,comm=`, grouped by the first `.app` in each path. Icon: `NSWorkspace iconForFile:` on that `.app`, turned into a PNG and cached per app.
 - Disk activity: `IOBlockStorageDriver` registry property `Statistics` → `Bytes (Read)` and `Bytes (Write)`, summed over drivers, deltas between samples.
-- Mic: CoreAudio on the default input device (`dIn `): `gone` (running somewhere) for in use; `mute` on the input scope, or input `volm` when there's no mute switch.
+- Mic: CoreAudio on the default input device (`dIn `): `gone` (running somewhere) for in use; `mute` on the input scope, or input `volm` when there's no settable mute switch (zero counts as muted). The app it shows: the first `prs#` process with `piri`, preferring one inside an `.app`, its path from `proc_pidpath`.
+- Sound: the same on the default output device (`dOut`) and the output scope. The volume is `volm` on element 0, or channels 1 and 2 averaged. An output with neither mute nor volume (many displays) shows Fixed.
+- macOS saves each device's mute and volume in `/Library/Preferences/Audio/com.apple.audio.DeviceSettings.plist` and restores them when the device reconnects, so a mic muted once can come back muted. Keybo only mutes on a tap.
 - Recording apps (Dictate): CoreAudio `prs#` lists audio processes, `piri` says one is recording, `ppid` is its PID (macOS 14.2 or later). It never listens to the mic. `Dictation.cs` checks every 0.6 s for a process named `Claude…` or `Codex…`; while one records, Dictate ripples its arcs and Return shows a dot, on one shared frame.
 - GPU: `IOAccelerator` registry property `PerformanceStatistics` → `Device Utilization %`.
 - CPU temp: private HID sensor API (`IOHIDEventSystemClient`, usage page 0xFF00, usage 5), average of sensors named `PMU tdie*`. Checked on an M4 Mac mini.
