@@ -53,10 +53,14 @@ In Logi Options+ the keys come in four groups.
 Session key colours: blue dots = working, amber = waiting for you, green = finished, grey = idle.
 A small icon on the bubble's top-right corner shows the app: Claude, ChatGPT for Codex, Teams, Safari or any other app. A Teams chat turns green with a dot when it has a new message: pin it with Teams in front and the chat open, and a tap opens it again. Unread only updates while Teams shows its Chat view. Teams keys need Logi Plugin Service allowed under Privacy & Security > Accessibility. A Safari tab shows a small browser window and its title: pin it with Safari in front, and a tap switches back to it, or opens it again if it was closed. The first time, macOS asks to let Logi Plugin Service control Safari: choose OK.
 
-Any other app gets the same small window, with its own icon and the window's name (a VS Code window shows its folder).
-Pin it with the window in front; a tap brings that window back, or opens the app if the window has closed. The key turns
-green with the count when the app has a Dock badge, and goes dark while the app isn't running. It needs the same
-Accessibility permission as Teams. An empty key always pins what's in front, so have Claude in front to pin a Claude session.
+Any other app gets the same small window, with its own icon. A window that shows a file or folder keeps its own name: a
+Terminal window shows its directory, and a VS Code window its folder while a file is open in it. Pin it with the window
+in front; a tap brings that window back, or opens the app if the window has closed. Any other app's key just says the
+app's name, since a window like Messages' changes what it shows, and a tap brings the app forward. The key turns green
+with the count when the app's Dock badge is new to you. Once you've looked at the app, with a tap or any other way, the
+count stays in grey until it goes up, since some badges, like Calendar's invitations, don't clear when you open the app.
+The key goes dark while the app isn't running. It needs the same Accessibility permission as Teams. An empty key always
+pins what's in front, so have Claude in front to pin a Claude session.
 
 **Hold to choose.** Hold a session key or Cancel and the key itself steps through its choices, about a second each;
 let go on the one you want. A session key offers Pin here (what's in front goes on that key), then Unpin, then

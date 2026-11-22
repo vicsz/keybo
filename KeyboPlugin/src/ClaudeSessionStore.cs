@@ -115,7 +115,9 @@ namespace Loupedeck.KeyboPlugin
         {
             if (session.IsApp)
             {
+                // The tap marks the app's badge seen; refresh now so its green clears at once.
                 AppWindows.Open(session.Id);
+                this._timer?.Change(0, Timeout.Infinite);
                 return;
             }
 

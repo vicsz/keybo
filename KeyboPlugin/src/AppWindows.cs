@@ -1,6 +1,7 @@
 namespace Loupedeck.KeyboPlugin
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
@@ -13,14 +14,21 @@ namespace Loupedeck.KeyboPlugin
     // Pinning takes the window in front and a tap brings it back to the front, through Accessibility, the permission the
     // Claude keys already need. All knowledge of other apps' windows stays here.
     //
-    // A pinned window's key ID is "app:<bundle ID>\n<name>\n<document>\n<title>", so it survives restarts with no file of
-    // its own. While the window is open, the key holds on to the window itself, which stays exact whatever its title does.
-    // After the window closes or its app restarts, a tap looks for it again: the same document, then the same title, then
-    // a title with the key's name in it. If none matches, the tap opens the app, which usually brings its windows back, and
-    // keeps looking for a few seconds. So a pinned window is never gone; at worst its key opens the app.
+    // Only a window that shows a file or folder (its document is a file, as in Pages, Preview or Terminal) is pinned as
+    // itself, under its own name. Any other window is pinned as its app, under the app's name: Messages has one window,
+    // titled after whichever conversation is open, and Mail, Notes, Music and browsers also change what one window shows,
+    // so their titles name something a tap couldn't bring back.
     //
-    // The key turns green with the app's Dock badge, read from the Dock's own Accessibility tree (lsappinfo doesn't report
-    // badges), and goes dark while the app isn't running. Window titles can be private: they stay on the key, never logged.
+    // A pin's key ID is "app:<bundle ID>\n<name>\n<document>\n<title>", so it survives restarts with no file of its own;
+    // an app's pin keeps the title only so two windows' keys stay apart. While the window is open, the key holds on to the
+    // window itself, which stays exact whatever its title does. After a file's window closes or its app restarts, a tap
+    // looks for it again: the same document, then the same title, then a title with the key's name in it. If none matches,
+    // or the pin is an app's, the tap opens the app, like a click on its Dock icon, which usually brings its windows back;
+    // for a file's window it keeps looking for a few seconds. So a pin is never gone; at worst its key opens the app.
+    //
+    // The key turns green with the app's Dock badge while it's news to you (see Poll), read from the Dock's own
+    // Accessibility tree (lsappinfo doesn't report badges), and goes dark while the app isn't running. Window titles can be
+    // private: they stay on the key, never logged.
 
     public static class AppWindows
     {
@@ -45,9 +53,19 @@ namespace Loupedeck.KeyboPlugin
         // The app behind each Dock icon, by path. Only Poll uses it, on the store's refresh.
         private static readonly Dictionary<String, String> DockApps = new Dictionary<String, String>();
 
-        private record Pin(String BundleId, String Name, String Document, String Title);
+        // Each app's name for its pins' keys, by bundle ID.
+        private static readonly ConcurrentDictionary<String, String> AppNames = new ConcurrentDictionary<String, String>();
 
-        private record AppState(Boolean Running, String Badge);
+        // The badge each pinned app showed when you last looked at it, by bundle ID (null: none). See Poll.
+        private static readonly Dictionary<String, String> Seen = new Dictionary<String, String>();
+
+        // A file's window is pinned as itself; any other pin is its app's.
+        private record Pin(String BundleId, String Name, String Document, String Title)
+        {
+            public Boolean IsWindow => IsFile(this.Document);
+        }
+
+        private record AppState(Boolean Running, String Badge, Boolean News);
 
         public static Boolean IsAppId(String id) => id != null && id.StartsWith(IdPrefix, StringComparison.Ordinal);
 
@@ -68,12 +86,15 @@ namespace Loupedeck.KeyboPlugin
 
             var status = state == null ? SessionStatus.Idle
                 : !state.Running ? SessionStatus.NotRunning
-                : state.Badge != null ? SessionStatus.Done
+                : state.News ? SessionStatus.Done
                 : SessionStatus.Idle;
-            return new SessionInfo(id, pin.Name, status, null, IsApp: true, App: pin.BundleId, Badge: state?.Badge);
+
+            // An app's pin is named when drawn, so a pin made before that rule shows the app's name too.
+            var name = pin.IsWindow ? pin.Name : AppName(pin.BundleId) ?? pin.Name;
+            return new SessionInfo(id, name, status, null, IsApp: true, App: pin.BundleId, Badge: state?.Badge);
         }
 
-        // The front window of the app in front, or just that app when Accessibility can't see a window.
+        // The front window of the app in front if it shows a file, else that app.
         public static SessionInfo ReadFront(ClaudeApp.FrontApp front)
         {
             if (front?.BundleId == null || !ValidBundleId.IsMatch(front.BundleId))
@@ -82,7 +103,10 @@ namespace Loupedeck.KeyboPlugin
             }
 
             var (window, title, document) = ReadFocusedWindow(front.Pid);
-            var id = IdPrefix + String.Join("\n", front.BundleId, ShortName(title, front.Name ?? front.BundleId), document ?? String.Empty, title ?? String.Empty);
+            var appName = front.Name ?? front.BundleId;
+            var id = IsFile(document)
+                ? IdPrefix + String.Join("\n", front.BundleId, ShortName(title, appName), document, title ?? String.Empty)
+                : IdPrefix + String.Join("\n", front.BundleId, AppName(front.BundleId) ?? appName, String.Empty, title ?? String.Empty);
 
             if (window != IntPtr.Zero)
             {
@@ -108,7 +132,13 @@ namespace Loupedeck.KeyboPlugin
             }
         }
 
-        // Called on every store refresh. True if a pinned app started or quit, or its Dock badge changed.
+        // Called on every store refresh. True if a pinned app started or quit, or its Dock badge changed or was seen.
+        //
+        // A badge turns the key green only while it's news. You've seen it once its app has been in front, by a tap on the
+        // key or any other way, and the key then keeps the count in grey: some badges, like Calendar's unanswered
+        // invitations, don't clear when you open the app. It's news again when the count goes up or other text shows. The
+        // seen badge follows the count down, so the next rise counts, and resets when the badge clears, but not when the app
+        // quits. Like a session's green, this lives in memory: the first reading after load or pinning counts as seen.
         public static Boolean Poll()
         {
             HashSet<String> bundleIds;
@@ -118,16 +148,40 @@ namespace Loupedeck.KeyboPlugin
                 bundleIds = _watched.Select(Parse).Where(pin => pin != null).Select(pin => pin.BundleId).ToHashSet();
             }
 
+            var badges = bundleIds.Count > 0 ? ReadDockBadges() : null;
+            var running = bundleIds.ToDictionary(bundleId => bundleId, bundleId => Mac.AppPids(bundleId).Count > 0);
             var states = new Dictionary<String, AppState>();
 
-            if (bundleIds.Count > 0)
+            lock (StateLock)
             {
-                var badges = ReadDockBadges();
+                foreach (var unpinned in Seen.Keys.Where(bundleId => !bundleIds.Contains(bundleId)).ToList())
+                {
+                    Seen.Remove(unpinned);
+                }
 
                 foreach (var bundleId in bundleIds)
                 {
-                    states[bundleId] = new AppState(Mac.AppPids(bundleId).Count > 0, badges?.GetValueOrDefault(bundleId));
+                    var badge = running[bundleId] ? badges?.GetValueOrDefault(bundleId) : null;
+
+                    // Only a reading of a running app's Dock icon moves what you've seen.
+                    if (running[bundleId] && badges != null)
+                    {
+                        Seen[bundleId] = Seen.TryGetValue(bundleId, out var seen) ? Lower(seen, badge) : badge;
+                    }
+
+                    states[bundleId] = new AppState(running[bundleId], badge, IsNews(badge, Seen.GetValueOrDefault(bundleId)));
                 }
+            }
+
+            // The app in front has been seen. Asked only while a badge is news, since it takes lsappinfo.
+            if (states.Values.Any(state => state.News) && ClaudeApp.Front()?.BundleId is String front && states.TryGetValue(front, out var looked) && looked.News)
+            {
+                lock (StateLock)
+                {
+                    Seen[front] = looked.Badge;
+                }
+
+                states[front] = looked with { News = false };
             }
 
             lock (StateLock)
@@ -138,8 +192,8 @@ namespace Loupedeck.KeyboPlugin
             }
         }
 
-        // Brings the pinned window to the front, or opens its app and looks again. It runs in the background, since an app
-        // can take a few seconds to start.
+        // Brings the pinned window to the front, or opens its app and, for a file's window, looks again. It runs in the
+        // background, since an app can take a few seconds to start.
         public static void Open(String id)
         {
             if (Parse(id) is not Pin pin)
@@ -147,6 +201,8 @@ namespace Loupedeck.KeyboPlugin
                 PluginLog.Warning("Not a usable app pin");
                 return;
             }
+
+            MarkSeen(pin.BundleId);
 
             Task.Run(() =>
             {
@@ -159,7 +215,7 @@ namespace Loupedeck.KeyboPlugin
 
                     Shell.Run("/usr/bin/open", "-b", pin.BundleId);
 
-                    for (var check = 0; check < LaunchChecks && Accessibility.IsTrusted(); check++)
+                    for (var check = 0; pin.IsWindow && check < LaunchChecks && Accessibility.IsTrusted(); check++)
                     {
                         Thread.Sleep(LaunchCheckMilliseconds);
 
@@ -263,8 +319,8 @@ namespace Loupedeck.KeyboPlugin
             return true;
         }
 
-        // The pinned window while it's open, or else the one most like it, which the key then holds on to. The window is
-        // retained for the caller.
+        // The pinned window while it's open, or else, for a file's window, the one most like it, which the key then holds
+        // on to. The window is retained for the caller.
         private static (IntPtr Window, Int32 Pid) FindWindow(String id, Pin pin)
         {
             if (!IsTrusted())
@@ -295,6 +351,12 @@ namespace Loupedeck.KeyboPlugin
                 {
                     Forget(id);
                 }
+            }
+
+            // Any window of the app would do for an app's pin, and opening the app brings its windows forward anyway.
+            if (!pin.IsWindow)
+            {
+                return (IntPtr.Zero, 0);
             }
 
             foreach (var pid in Mac.AppPids(pin.BundleId))
@@ -347,8 +409,15 @@ namespace Loupedeck.KeyboPlugin
             {
                 using var tree = new Accessibility.Tree(dock.Id);
                 var badges = new Dictionary<String, String>();
+                var lists = tree.Children(tree.App, "AXChildren").Where(child => tree.Text(child, "AXRole") == "AXList").ToList();
 
-                foreach (var list in tree.Children(tree.App, "AXChildren").Where(child => tree.Text(child, "AXRole") == "AXList"))
+                // No icon list is a failed read, not a Dock without badges, so badges never seem to clear (and then come back as news).
+                if (lists.Count == 0)
+                {
+                    return null;
+                }
+
+                foreach (var list in lists)
                 {
                     foreach (var icon in tree.Children(list, "AXChildren"))
                     {
@@ -369,6 +438,35 @@ namespace Loupedeck.KeyboPlugin
                 return null;
             }
         }
+
+        // A tap is a look: the app's badge is seen now, rather than once the app has come forward.
+        private static void MarkSeen(String bundleId)
+        {
+            lock (StateLock)
+            {
+                if (_states.TryGetValue(bundleId, out var state) && state.Running)
+                {
+                    Seen[bundleId] = state.Badge;
+                }
+            }
+        }
+
+        // Whether a badge is news next to the one last seen: a higher count, or other text.
+        private static Boolean IsNews(String badge, String seen) =>
+            badge != null && (seen == null || (Int32.TryParse(badge, out var count) && Int32.TryParse(seen, out var seenCount) ? count > seenCount : badge != seen));
+
+        // The seen badge after a reading: down with the count, so the next rise is news, and gone with the badge.
+        private static String Lower(String seen, String badge) =>
+            badge == null ? null
+            : Int32.TryParse(badge, out var count) && Int32.TryParse(seen, out var seenCount) && count < seenCount ? badge
+            : seen;
+
+        // A document that's a file or folder, as a file's window has. Brave's is its page's address.
+        private static Boolean IsFile(String document) => document != null && document.StartsWith("file:", StringComparison.OrdinalIgnoreCase);
+
+        // An app's name, as its .app is named ("Messages"). Null if it isn't installed.
+        private static String AppName(String bundleId) =>
+            AppNames.GetOrAdd(bundleId, key => Mac.AppPath(key) is String path && Path.GetFileNameWithoutExtension(path.TrimEnd('/')) is { Length: > 0 } name ? name : null);
 
         private static String DockApp(String path)
         {

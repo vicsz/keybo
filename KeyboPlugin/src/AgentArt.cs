@@ -298,36 +298,42 @@ namespace Loupedeck.KeyboPlugin
             builder.DrawImage(BitmapImage.FromSvg(svg), 0, 0, width, height);
         }
 
-        // Any app's window, the shape Safari tabs use. Its app's Dock badge turns the key green, with the badge in the
-        // window (a dot when it's more than a short count). Dark while the app isn't running.
+        // Any app's window, the shape Safari tabs use. A Dock badge that's news turns the key green, with the badge in the
+        // window (a dot when it's more than a short count); once seen, the badge stays in grey. Dark while the app isn't running.
         private static void DrawAppWindow(BitmapBuilder builder, SessionInfo session, Single scale)
         {
             switch (session.Status)
             {
                 case SessionStatus.Done:
                     DrawWindow(builder, Ink, Ink, Green, scale);
-                    DrawWindowBadge(builder, session.Badge, scale);
+                    DrawWindowBadge(builder, session.Badge, Green, scale);
                     break;
                 case SessionStatus.NotRunning:
                     DrawWindow(builder, Dim, null, Dim, scale);
                     break;
                 default:
                     DrawWindow(builder, Muted, null, Muted, scale);
+
+                    if (session.Badge != null)
+                    {
+                        DrawWindowBadge(builder, session.Badge, Muted, scale);
+                    }
+
                     break;
             }
         }
 
-        private static void DrawWindowBadge(BitmapBuilder builder, String badge, Single scale)
+        private static void DrawWindowBadge(BitmapBuilder builder, String badge, UInt32 color, Single scale)
         {
             if (badge != null && badge.Length <= 3)
             {
-                builder.DrawText(badge, 0, Scaled(WindowBadgeTop, scale), builder.Width, Scaled(BubbleBottom - WindowBadgeTop, scale), BitmapColor.FromRgb(Green), Scaled(CountFontSize, scale));
+                builder.DrawText(badge, 0, Scaled(WindowBadgeTop, scale), builder.Width, Scaled(BubbleBottom - WindowBadgeTop, scale), BitmapColor.FromRgb(color), Scaled(CountFontSize, scale));
                 return;
             }
 
             var pixels = Scaled(DesignSize, scale);
             var dot = FormattableString.Invariant(
-                $"<svg xmlns='http://www.w3.org/2000/svg' width='{pixels}' height='{pixels}' viewBox='0 0 {DesignSize} {DesignSize}'><circle cx='{DesignSize / 2f}' cy='{WindowMiddle}' r='4' fill='{Hex(Green)}'/>{KeepColor}</svg>");
+                $"<svg xmlns='http://www.w3.org/2000/svg' width='{pixels}' height='{pixels}' viewBox='0 0 {DesignSize} {DesignSize}'><circle cx='{DesignSize / 2f}' cy='{WindowMiddle}' r='4' fill='{Hex(color)}'/>{KeepColor}</svg>");
             builder.DrawImage(BitmapImage.FromSvg(dot), 0, 0, pixels, pixels);
         }
 
