@@ -2,7 +2,6 @@ namespace Loupedeck.KeyboPlugin
 {
     using System;
     using System.Collections.Concurrent;
-    using System.IO;
 
     // The agent keys' half of KeyArt: session keys, Usage, the shortcut keys and hold choices.
 
@@ -35,12 +34,18 @@ namespace Loupedeck.KeyboPlugin
         private static readonly Double[] ListeningWave = { 0, 0.55, 0.85, 0.7, 0.45, 0.25, 0.1, 0 };
 
         // Each app's own icon, as macOS shows it, centred on the bubble's top-right corner like a badge. ChatGPT's stands
-        // for Codex. Read from the installed app once, so no logos live in the repo; a missing app just means no icon.
+        // for Codex. Found by bundle ID and read from the installed app once, so no logos live in the repo; a missing app
+        // just means no icon. A pinned app that isn't running shows its icon grey.
         private const Int32 AppIconSize = 28;
         private const Int32 AppIconLeft = 69;
         private const Int32 AppIconTop = 1;
         private const Int32 AppIconPixels = 64;
-        private static readonly ConcurrentDictionary<String, Byte[]> AppIcons = new ConcurrentDictionary<String, Byte[]>();
+        private static readonly ConcurrentDictionary<(String App, Boolean Faded), Byte[]> AppIcons = new ConcurrentDictionary<(String, Boolean), Byte[]>();
+
+        // A pinned app's Dock badge sits in its window, under the toolbar line. DrawText sets digits a little above the middle
+        // of their box, so the box starts lower to centre them in the window.
+        private const Int32 WindowBadgeTop = 23;
+        private const Int32 WindowMiddle = 34;
 
         private const Int32 LineLength = 9;
 
@@ -198,12 +203,18 @@ namespace Loupedeck.KeyboPlugin
 
         // The bubble is wide on every key, so it sits the same on all of them whatever is inside.
         // A Teams chat has the same bubble as a session: empty and grey when read; on green (a new message), dark with a
-        // green dot, since a message isn't "done".
+        // green dot, since a message isn't "done". A Safari tab or any app's window is a small window instead.
         private static void DrawBubble(BitmapBuilder builder, SessionInfo session, Int32 dotFrame, Single scale)
         {
+            if (session.IsApp)
+            {
+                DrawAppWindow(builder, session, scale);
+                return;
+            }
+
             if (session.IsSafari)
             {
-                DrawBrowserWindow(builder, Muted, scale);
+                DrawWindow(builder, Muted, null, Muted, scale);
                 return;
             }
 
@@ -250,8 +261,8 @@ namespace Loupedeck.KeyboPlugin
 
         // The outline is drawn at key size. What goes inside uses the 24-unit icon grid, a little larger than
         // the icons, with its centre on the bubble's centre.
-        // A Safari tab: a small browser window the size of the speech bubble, with a toolbar line and three dots.
-        private static void DrawBrowserWindow(BitmapBuilder builder, UInt32 color, Single scale)
+        // A window the size of the speech bubble, with a toolbar line and three dots: a Safari tab, or a pinned app's window.
+        private static void DrawWindow(BitmapBuilder builder, UInt32 color, UInt32? fill, UInt32 dotColor, Single scale)
         {
             const Single left = ((DesignSize - BubbleWidth) / 2f) + (BubbleStroke / 2);
             const Single right = ((DesignSize + BubbleWidth) / 2f) - (BubbleStroke / 2);
@@ -264,15 +275,48 @@ namespace Loupedeck.KeyboPlugin
 
             for (var dot = 0; dot < 3; dot++)
             {
-                dots += FormattableString.Invariant($"<circle cx='{left + 5.5f + (dot * 4.5f)}' cy='{top + 4.7f}' r='1.5' fill='{Hex(color)}' stroke='none'/>");
+                dots += FormattableString.Invariant($"<circle cx='{left + 5.5f + (dot * 4.5f)}' cy='{top + 4.7f}' r='1.5' fill='{Hex(dotColor)}' stroke='none'/>");
             }
 
             var svg = FormattableString.Invariant(
                 $"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='{height}' viewBox='0 0 {DesignSize} {BubbleAreaHeight}' fill='none' stroke='{Hex(color)}' stroke-width='{BubbleStroke}' stroke-linecap='round' stroke-linejoin='round'>") +
-                FormattableString.Invariant($"<rect x='{left}' y='{top}' width='{right - left}' height='{bottom - top}' rx='{BubbleCorner}'/><path d='M{left} {toolbar}H{right}'/>") +
+                FormattableString.Invariant($"<rect x='{left}' y='{top}' width='{right - left}' height='{bottom - top}' rx='{BubbleCorner}' fill='{(fill.HasValue ? Hex(fill.Value) : "none")}'/><path d='M{left} {toolbar}H{right}'/>") +
                 $"{dots}{KeepColor}</svg>";
 
             builder.DrawImage(BitmapImage.FromSvg(svg), 0, 0, width, height);
+        }
+
+        // Any app's window, the shape Safari tabs use. Its app's Dock badge turns the key green, with the badge in the
+        // window (a dot when it's more than a short count). Dark while the app isn't running.
+        private static void DrawAppWindow(BitmapBuilder builder, SessionInfo session, Single scale)
+        {
+            switch (session.Status)
+            {
+                case SessionStatus.Done:
+                    DrawWindow(builder, Ink, Ink, Green, scale);
+                    DrawWindowBadge(builder, session.Badge, scale);
+                    break;
+                case SessionStatus.NotRunning:
+                    DrawWindow(builder, Dim, null, Dim, scale);
+                    break;
+                default:
+                    DrawWindow(builder, Muted, null, Muted, scale);
+                    break;
+            }
+        }
+
+        private static void DrawWindowBadge(BitmapBuilder builder, String badge, Single scale)
+        {
+            if (badge != null && badge.Length <= 3)
+            {
+                builder.DrawText(badge, 0, Scaled(WindowBadgeTop, scale), builder.Width, Scaled(BubbleBottom - WindowBadgeTop, scale), BitmapColor.FromRgb(Green), Scaled(CountFontSize, scale));
+                return;
+            }
+
+            var pixels = Scaled(DesignSize, scale);
+            var dot = FormattableString.Invariant(
+                $"<svg xmlns='http://www.w3.org/2000/svg' width='{pixels}' height='{pixels}' viewBox='0 0 {DesignSize} {DesignSize}'><circle cx='{DesignSize / 2f}' cy='{WindowMiddle}' r='4' fill='{Hex(Green)}'/>{KeepColor}</svg>");
+            builder.DrawImage(BitmapImage.FromSvg(dot), 0, 0, pixels, pixels);
         }
 
         private static void DrawWideBubble(BitmapBuilder builder, String inside, UInt32 color, UInt32? fill, Single scale)
@@ -314,9 +358,13 @@ namespace Loupedeck.KeyboPlugin
 
         private static Byte[] AppIconFor(SessionInfo session)
         {
-            var app = session.IsSafari ? "/Applications/Safari.app" : session.IsTeams ? "/Applications/Microsoft Teams.app" : session.IsCodex ? "/Applications/ChatGPT.app" : "/Applications/Claude.app";
-            return AppIcons.GetOrAdd(app, path => Directory.Exists(path) ? Mac.AppIcon(path, AppIconPixels) : null);
+            var app = session.App ?? (session.IsSafari ? SafariTabs.BundleId : session.IsTeams ? TeamsChats.BundleId : session.IsCodex ? CodexThreads.BundleId : ClaudeApp.BundleId);
+            return AppIcon(app, faded: session.IsApp && session.Status == SessionStatus.NotRunning);
         }
+
+        // An app's icon by bundle ID, read once. Null if the app isn't installed.
+        private static Byte[] AppIcon(String app, Boolean faded = false) =>
+            AppIcons.GetOrAdd((app, faded), key => Mac.AppPath(key.App) is String path ? Mac.AppIcon(path, AppIconPixels, key.Faded) : null);
 
         private static String Stroked(String body, UInt32 color) => $"<g stroke='{Hex(color)}'>{body}</g>";
 

@@ -4,8 +4,8 @@ namespace Loupedeck.KeyboPlugin
     using System.Linq;
     using System.Threading;
 
-    // A key you lock to any session. Tap an empty key to lock the session on screen, tap a locked key to open its
-    // session. Hold to choose, on the key itself: Pin here (the session on screen), Unpin (a locked key only), or
+    // A key you lock to any session, or any app's window. Tap an empty key to lock what's on screen, tap a locked key to
+    // open it again. Hold to choose, on the key itself: Pin here (the session on screen), Unpin (a locked key only), or
     // Never mind. All six keys are one action with a parameter each, so one menu serves whichever key is held.
 
     public class SessionKeyCommand : PluginDynamicCommand
@@ -38,7 +38,7 @@ namespace Loupedeck.KeyboPlugin
         protected override Boolean OnLoad()
         {
             this._locks = new SessionKeyLocks(this.Plugin.GetPluginDataDirectory(), KeyCount);
-            this.WatchTeams();
+            this.WatchPins();
             this.Sessions.Changed += this.OnSessionsChanged;
             this._menu = new HoldMenu(() => this.ActionImageChanged(this._menuKey.ToString()));
             this._dots = new Timer(_ => this.AdvanceDots(), null, DotMilliseconds, DotMilliseconds);
@@ -121,7 +121,7 @@ namespace Loupedeck.KeyboPlugin
             if (current != null)
             {
                 this._locks.Lock(key, current.Id);
-                this.WatchTeams();
+                this.WatchPins();
                 this.RedrawAll();
             }
         }
@@ -129,12 +129,12 @@ namespace Loupedeck.KeyboPlugin
         private void Clear(Int32 key)
         {
             this._locks.Clear(key);
-            this.WatchTeams();
+            this.WatchPins();
             this.RedrawAll();
         }
 
-        private void WatchTeams() =>
-            this.Sessions.WatchTeams(Enumerable.Range(0, KeyCount).Select(this._locks.Get).Where(id => id != null).ToList());
+        private void WatchPins() =>
+            this.Sessions.WatchPins(Enumerable.Range(0, KeyCount).Select(this._locks.Get).Where(id => id != null).ToList());
 
         private void OnSessionsChanged()
         {

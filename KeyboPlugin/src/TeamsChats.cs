@@ -4,7 +4,6 @@ namespace Loupedeck.KeyboPlugin
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
-    using System.Runtime.InteropServices;
     using System.Text.RegularExpressions;
     using System.Threading;
 
@@ -186,7 +185,7 @@ namespace Loupedeck.KeyboPlugin
         // (Teams closed, another view open), so the keys keep what they showed. Chats not in the list count as read.
         public static HashSet<String> ReadUnread(HashSet<String> watched)
         {
-            if (!AXIsProcessTrusted())
+            if (!Accessibility.IsTrusted())
             {
                 return null;
             }
@@ -199,7 +198,7 @@ namespace Loupedeck.KeyboPlugin
                 return new HashSet<String>();
             }
 
-            using var tree = new Tree(process.Id);
+            using var tree = new Accessibility.Tree(process.Id);
             var list = RememberedList(tree, process.Id);
 
             if (list == IntPtr.Zero)
@@ -254,7 +253,7 @@ namespace Loupedeck.KeyboPlugin
             return unread;
         }
 
-        private static IntPtr RememberedList(Tree tree, Int32 pid)
+        private static IntPtr RememberedList(Accessibility.Tree tree, Int32 pid)
         {
             lock (StateLock)
             {
@@ -272,7 +271,7 @@ namespace Loupedeck.KeyboPlugin
             lock (StateLock)
             {
                 ForgetList();
-                _list = CFRetain(list);
+                _list = Accessibility.Retain(list);
                 _listPid = pid;
                 return _list;
             }
@@ -284,7 +283,7 @@ namespace Loupedeck.KeyboPlugin
             {
                 if (_list != IntPtr.Zero)
                 {
-                    CFRelease(_list);
+                    Accessibility.Release(_list);
                     _list = IntPtr.Zero;
                 }
             }
@@ -350,7 +349,7 @@ namespace Loupedeck.KeyboPlugin
 
         private static (String ChatId, String Title)? ReadOpenChatOnce()
         {
-            if (!AXIsProcessTrusted())
+            if (!Accessibility.IsTrusted())
             {
                 if (!_warnedUntrusted)
                 {
@@ -368,7 +367,7 @@ namespace Loupedeck.KeyboPlugin
                 return null;
             }
 
-            using var tree = new Tree(process.Id);
+            using var tree = new Accessibility.Tree(process.Id);
             tree.Set(tree.App, "AXManualAccessibility", true);
 
             foreach (var window in tree.Children(tree.App, "AXWindows"))
@@ -402,7 +401,7 @@ namespace Loupedeck.KeyboPlugin
         }
 
         // Every chat row in the window, with the list (AXOutline) it sits in.
-        private static List<(IntPtr Element, String Title, String Classes, IntPtr List)> FindChatRows(Tree tree, IntPtr window)
+        private static List<(IntPtr Element, String Title, String Classes, IntPtr List)> FindChatRows(Accessibility.Tree tree, IntPtr window)
         {
             var rows = new List<(IntPtr, String, String, IntPtr)>();
             var stack = new Stack<(IntPtr Element, Int32 Depth, IntPtr List)>();
@@ -441,7 +440,7 @@ namespace Loupedeck.KeyboPlugin
             return rows;
         }
 
-        private static String FindChatId(Tree tree, IntPtr row)
+        private static String FindChatId(Accessibility.Tree tree, IntPtr row)
         {
             var stack = new Stack<(IntPtr Element, Int32 Depth)>();
             stack.Push((row, 0));
@@ -468,141 +467,5 @@ namespace Loupedeck.KeyboPlugin
 
             return null;
         }
-
-        // One read of an app's accessibility tree. Everything it copies is released together when it's disposed,
-        // so elements stay valid for the whole walk.
-        private sealed class Tree : IDisposable
-        {
-            private readonly List<IntPtr> _owned = new List<IntPtr>();
-            private readonly Dictionary<String, IntPtr> _names = new Dictionary<String, IntPtr>();
-
-            public Tree(Int32 pid)
-            {
-                this.App = AXUIElementCreateApplication(pid);
-                this._owned.Add(this.App);
-            }
-
-            public IntPtr App { get; }
-
-            public void Set(IntPtr element, String attribute, Boolean value) =>
-                AXUIElementSetAttributeValue(element, this.Name(attribute), value ? CFBoolean("kCFBooleanTrue") : CFBoolean("kCFBooleanFalse"));
-
-            public String Text(IntPtr element, String attribute) =>
-                this.Copy(element, attribute) is IntPtr value && CFGetTypeID(value) == CFStringGetTypeID() ? ReadString(value) : null;
-
-            public IEnumerable<String> Texts(IntPtr element, String attribute) =>
-                this.Array(element, attribute).Where(v => CFGetTypeID(v) == CFStringGetTypeID()).Select(ReadString);
-
-            public IEnumerable<IntPtr> Children(IntPtr element, String attribute) => this.Array(element, attribute);
-
-            public void Dispose()
-            {
-                foreach (var reference in this._owned.Concat(this._names.Values))
-                {
-                    CFRelease(reference);
-                }
-            }
-
-            private List<IntPtr> Array(IntPtr element, String attribute)
-            {
-                var items = new List<IntPtr>();
-
-                if (this.Copy(element, attribute) is IntPtr array && CFGetTypeID(array) == CFArrayGetTypeID())
-                {
-                    for (var i = 0L; i < CFArrayGetCount(array); i++)
-                    {
-                        items.Add(CFArrayGetValueAtIndex(array, i));
-                    }
-                }
-
-                return items;
-            }
-
-            private IntPtr? Copy(IntPtr element, String attribute)
-            {
-                if (AXUIElementCopyAttributeValue(element, this.Name(attribute), out var value) != 0 || value == IntPtr.Zero)
-                {
-                    return null;
-                }
-
-                this._owned.Add(value);
-                return value;
-            }
-
-            private IntPtr Name(String attribute)
-            {
-                if (!this._names.TryGetValue(attribute, out var name))
-                {
-                    name = CFStringCreateWithCharacters(IntPtr.Zero, attribute, attribute.Length);
-                    this._names[attribute] = name;
-                }
-
-                return name;
-            }
-
-            private static String ReadString(IntPtr value)
-            {
-                var length = CFStringGetLength(value);
-                var buffer = new Char[length];
-                CFStringGetCharacters(value, new CFRange { Location = 0, Length = length }, buffer);
-                return new String(buffer);
-            }
-
-            private static IntPtr CFBoolean(String name) =>
-                Marshal.ReadIntPtr(NativeLibrary.GetExport(NativeLibrary.Load(CoreFoundation), name));
-        }
-
-        private const String ApplicationServices = "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices";
-        private const String CoreFoundation = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct CFRange
-        {
-            public Int64 Location;
-            public Int64 Length;
-        }
-
-        [DllImport(ApplicationServices)]
-        [return: MarshalAs(UnmanagedType.I1)]
-        private static extern Boolean AXIsProcessTrusted();
-
-        [DllImport(ApplicationServices)]
-        private static extern IntPtr AXUIElementCreateApplication(Int32 pid);
-
-        [DllImport(ApplicationServices)]
-        private static extern Int32 AXUIElementCopyAttributeValue(IntPtr element, IntPtr attribute, out IntPtr value);
-
-        [DllImport(ApplicationServices)]
-        private static extern Int32 AXUIElementSetAttributeValue(IntPtr element, IntPtr attribute, IntPtr value);
-
-        [DllImport(CoreFoundation, CharSet = CharSet.Unicode)]
-        private static extern IntPtr CFStringCreateWithCharacters(IntPtr allocator, [MarshalAs(UnmanagedType.LPWStr)] String text, Int64 length);
-
-        [DllImport(CoreFoundation)]
-        private static extern Int64 CFStringGetLength(IntPtr text);
-
-        [DllImport(CoreFoundation, CharSet = CharSet.Unicode)]
-        private static extern void CFStringGetCharacters(IntPtr text, CFRange range, [Out] Char[] buffer);
-
-        [DllImport(CoreFoundation)]
-        private static extern Int64 CFArrayGetCount(IntPtr array);
-
-        [DllImport(CoreFoundation)]
-        private static extern IntPtr CFArrayGetValueAtIndex(IntPtr array, Int64 index);
-
-        [DllImport(CoreFoundation)]
-        private static extern UInt64 CFGetTypeID(IntPtr reference);
-
-        [DllImport(CoreFoundation)]
-        private static extern UInt64 CFStringGetTypeID();
-
-        [DllImport(CoreFoundation)]
-        private static extern UInt64 CFArrayGetTypeID();
-
-        [DllImport(CoreFoundation)]
-        private static extern void CFRelease(IntPtr reference);
-
-        [DllImport(CoreFoundation)]
-        private static extern IntPtr CFRetain(IntPtr reference);
     }
 }

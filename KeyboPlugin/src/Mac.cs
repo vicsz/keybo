@@ -1,10 +1,12 @@
 namespace Loupedeck.KeyboPlugin
 {
     using System;
+    using System.Collections.Generic;
     using System.Runtime.InteropServices;
     using System.Text;
 
-    // Calls into macOS: the kernel, Foundation, Wi-Fi, app icons and process paths. IOKit hardware readings are in Sensors.cs.
+    // Calls into macOS: the kernel, Foundation, Wi-Fi, app icons, where apps live and run, and process paths. IOKit hardware
+    // readings are in Sensors.cs.
 
     internal static class Mac
     {
@@ -142,10 +144,89 @@ namespace Loupedeck.KeyboPlugin
             return length > 0 ? Encoding.UTF8.GetString(buffer, 0, length) : null;
         }
 
-        // An app's icon as a PNG about pixels across, the one Finder shows, or null if macOS has none for it.
-        public static Byte[] AppIcon(String appPath, Int32 pixels)
+        // Where an app is installed, from its bundle ID, or null if it isn't. LaunchServices gives the real place, so an app
+        // reached through a link (/Applications/Safari.app links into a system volume) doesn't get Finder's alias arrow.
+        public static String AppPath(String bundleId)
         {
             var pool = objc_autoreleasePoolPush();
+
+            try
+            {
+                var workspace = objc_msgSend(Class("NSWorkspace"), Selector("sharedWorkspace"));
+                var url = Send(workspace, "URLForApplicationWithBundleIdentifier:", NSString(bundleId));
+                return url == IntPtr.Zero ? null : ReadString(objc_msgSend(url, Selector("path")));
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Warning(ex, $"Couldn't find the app {bundleId}");
+                return null;
+            }
+            finally
+            {
+                objc_autoreleasePoolPop(pool);
+            }
+        }
+
+        // The processes of an app's running copies, usually one. Empty when it isn't running.
+        public static List<Int32> AppPids(String bundleId)
+        {
+            var pids = new List<Int32>();
+            var pool = objc_autoreleasePoolPush();
+
+            try
+            {
+                var apps = Send(Class("NSRunningApplication"), "runningApplicationsWithBundleIdentifier:", NSString(bundleId));
+                var count = apps == IntPtr.Zero ? 0 : SendLong(apps, Selector("count"));
+
+                for (var i = 0L; i < count; i++)
+                {
+                    var pid = (Int32)SendLong(SendIndex(apps, Selector("objectAtIndex:"), (UInt64)i), Selector("processIdentifier"));
+
+                    if (pid > 0)
+                    {
+                        pids.Add(pid);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Warning(ex, $"Couldn't list the processes of {bundleId}");
+            }
+            finally
+            {
+                objc_autoreleasePoolPop(pool);
+            }
+
+            return pids;
+        }
+
+        // The bundle ID of the app at a path, or null.
+        public static String BundleIdOf(String appPath)
+        {
+            var pool = objc_autoreleasePoolPush();
+
+            try
+            {
+                var bundle = Send(Class("NSBundle"), "bundleWithPath:", NSString(appPath));
+                return bundle == IntPtr.Zero ? null : ReadString(objc_msgSend(bundle, Selector("bundleIdentifier")));
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Warning(ex, $"Couldn't read the bundle at {appPath}");
+                return null;
+            }
+            finally
+            {
+                objc_autoreleasePoolPop(pool);
+            }
+        }
+
+        // An app's icon as a PNG about pixels across, the one Finder shows, or null if macOS has none for it.
+        // Faded is grey at half strength, for a key whose app isn't running.
+        public static Byte[] AppIcon(String appPath, Int32 pixels, Boolean faded = false)
+        {
+            var pool = objc_autoreleasePoolPush();
+            var grey = IntPtr.Zero;
 
             try
             {
@@ -153,6 +234,11 @@ namespace Loupedeck.KeyboPlugin
                 var image = Send(workspace, "iconForFile:", NSString(appPath));
                 var rect = new Rect { Width = pixels, Height = pixels };
                 var picture = image == IntPtr.Zero ? IntPtr.Zero : SendImage(image, Selector("CGImageForProposedRect:context:hints:"), ref rect, IntPtr.Zero, IntPtr.Zero);
+
+                if (picture != IntPtr.Zero && faded)
+                {
+                    picture = grey = Grey(picture, pixels);
+                }
 
                 if (picture == IntPtr.Zero)
                 {
@@ -187,7 +273,45 @@ namespace Loupedeck.KeyboPlugin
             }
             finally
             {
+                if (grey != IntPtr.Zero)
+                {
+                    CGImageRelease(grey);
+                }
+
                 objc_autoreleasePoolPop(pool);
+            }
+        }
+
+        // The icon in grey at half strength: drawn, turned grey by a saturation blend (which also fills the transparent
+        // corners), then cut back to the icon's own shape at half its alpha. The caller releases the image.
+        private static IntPtr Grey(IntPtr image, Int32 pixels)
+        {
+            const UInt32 PremultipliedLast = 1;
+            const Int32 SaturationBlend = 13, DestinationInBlend = 22;
+            var space = CGColorSpaceCreateDeviceRGB();
+            var context = CGBitmapContextCreate(IntPtr.Zero, (UIntPtr)pixels, (UIntPtr)pixels, 8, UIntPtr.Zero, space, PremultipliedLast);
+            CGColorSpaceRelease(space);
+
+            if (context == IntPtr.Zero)
+            {
+                return IntPtr.Zero;
+            }
+
+            try
+            {
+                var rect = new Rect { Width = pixels, Height = pixels };
+                CGContextDrawImage(context, rect, image);
+                CGContextSetBlendMode(context, SaturationBlend);
+                CGContextSetRGBFillColor(context, 0.5, 0.5, 0.5, 1);
+                CGContextFillRect(context, rect);
+                CGContextSetBlendMode(context, DestinationInBlend);
+                CGContextSetAlpha(context, 0.5);
+                CGContextDrawImage(context, rect, image);
+                return CGBitmapContextCreateImage(context);
+            }
+            finally
+            {
+                CGContextRelease(context);
             }
         }
 
@@ -207,6 +331,8 @@ namespace Loupedeck.KeyboPlugin
 
         private static IntPtr NSString(String text) => Send(Class("NSString"), "stringWithUTF8String:", Encoding.UTF8.GetBytes(text + "\0"));
 
+        private static String ReadString(IntPtr text) => text == IntPtr.Zero ? null : Marshal.PtrToStringUTF8(objc_msgSend(text, Selector("UTF8String")));
+
         private static IntPtr Class(String name) => objc_getClass(name);
 
         private static IntPtr Selector(String name) => sel_registerName(name);
@@ -217,6 +343,39 @@ namespace Loupedeck.KeyboPlugin
 
         [DllImport(CoreGraphics)]
         private static extern Double CGEventSourceSecondsSinceLastEventType(Int32 source, UInt32 eventType);
+
+        [DllImport(CoreGraphics)]
+        private static extern IntPtr CGColorSpaceCreateDeviceRGB();
+
+        [DllImport(CoreGraphics)]
+        private static extern void CGColorSpaceRelease(IntPtr space);
+
+        [DllImport(CoreGraphics)]
+        private static extern IntPtr CGBitmapContextCreate(IntPtr data, UIntPtr width, UIntPtr height, UIntPtr bitsPerComponent, UIntPtr bytesPerRow, IntPtr space, UInt32 bitmapInfo);
+
+        [DllImport(CoreGraphics)]
+        private static extern void CGContextDrawImage(IntPtr context, Rect rect, IntPtr image);
+
+        [DllImport(CoreGraphics)]
+        private static extern void CGContextSetBlendMode(IntPtr context, Int32 mode);
+
+        [DllImport(CoreGraphics)]
+        private static extern void CGContextSetRGBFillColor(IntPtr context, Double red, Double green, Double blue, Double alpha);
+
+        [DllImport(CoreGraphics)]
+        private static extern void CGContextFillRect(IntPtr context, Rect rect);
+
+        [DllImport(CoreGraphics)]
+        private static extern void CGContextSetAlpha(IntPtr context, Double alpha);
+
+        [DllImport(CoreGraphics)]
+        private static extern IntPtr CGBitmapContextCreateImage(IntPtr context);
+
+        [DllImport(CoreGraphics)]
+        private static extern void CGContextRelease(IntPtr context);
+
+        [DllImport(CoreGraphics)]
+        private static extern void CGImageRelease(IntPtr image);
 
         [DllImport(System)]
         private static extern UInt32 mach_host_self();
@@ -262,6 +421,9 @@ namespace Loupedeck.KeyboPlugin
 
         [DllImport(ObjC, EntryPoint = "objc_msgSend")]
         private static extern Int64 SendLong(IntPtr target, IntPtr selector);
+
+        [DllImport(ObjC, EntryPoint = "objc_msgSend")]
+        private static extern IntPtr SendIndex(IntPtr target, IntPtr selector, UInt64 index);
 
         [DllImport(ObjC, EntryPoint = "objc_msgSend")]
         private static extern Double SendDouble(IntPtr target, IntPtr selector);

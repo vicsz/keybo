@@ -44,17 +44,22 @@ In Logi Options+ the keys come in four groups.
 
 | Key | Tap | Hold |
 |---|---|---|
-| Session key 1–6 | Open that session (Claude, Codex, a Teams chat or a Safari tab). Empty: pin the session on screen | Choose: Pin here, Unpin |
+| Session key 1–6 | Open what's pinned: a Claude session, a Codex thread, a Teams chat, a Safari tab or any app's window. Empty: pin what's in front | Choose: Pin here, Unpin |
 | Dictate | Start or stop dictation in the app in front: Claude's mic in Claude, ChatGPT's dictation anywhere else. Faint red arcs ripple round the mic while either is recording | — |
 | Return | Press Return in the app in front: sends, or finishes dictation. A soft red dot shows while you're dictating | — |
 | Cancel | Press Escape in the app in front: cancels dictation or interrupts | Choose: Archive |
 | Usage | Switch between your 5-hour and weekly limits | — |
 
 Session key colours: blue dots = working, amber = waiting for you, green = finished, grey = idle.
-A small icon on the bubble's top-right corner shows the app: Claude, ChatGPT for Codex, or Teams. A Teams chat turns green with a dot when it has a new message: pin it with Teams in front and the chat open, and a tap opens it again. Unread only updates while Teams shows its Chat view. Teams keys need Logi Plugin Service allowed under Privacy & Security > Accessibility. A Safari tab shows a small browser window and its title: pin it with Safari in front, and a tap switches back to it, or opens it again if it was closed. The first time, macOS asks to let Logi Plugin Service control Safari: choose OK.
+A small icon on the bubble's top-right corner shows the app: Claude, ChatGPT for Codex, Teams, Safari or any other app. A Teams chat turns green with a dot when it has a new message: pin it with Teams in front and the chat open, and a tap opens it again. Unread only updates while Teams shows its Chat view. Teams keys need Logi Plugin Service allowed under Privacy & Security > Accessibility. A Safari tab shows a small browser window and its title: pin it with Safari in front, and a tap switches back to it, or opens it again if it was closed. The first time, macOS asks to let Logi Plugin Service control Safari: choose OK.
+
+Any other app gets the same small window, with its own icon and the window's name (a VS Code window shows its folder).
+Pin it with the window in front; a tap brings that window back, or opens the app if the window has closed. The key turns
+green with the count when the app has a Dock badge, and goes dark while the app isn't running. It needs the same
+Accessibility permission as Teams. An empty key always pins what's in front, so have Claude in front to pin a Claude session.
 
 **Hold to choose.** Hold a session key or Cancel and the key itself steps through its choices, about a second each;
-let go on the one you want. A session key offers Pin here (the session on screen goes on that key), then Unpin, then
+let go on the one you want. A session key offers Pin here (what's in front goes on that key), then Unpin, then
 Never mind. Cancel offers Archive (the Claude session on screen), then Never mind. To archive a key's session, tap the
 key to open it, then hold Cancel.
 

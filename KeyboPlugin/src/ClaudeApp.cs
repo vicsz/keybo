@@ -4,7 +4,7 @@ namespace Loupedeck.KeyboPlugin
     using System.Text.RegularExpressions;
     using System.Threading;
 
-    // Everything that acts on the Claude app window.
+    // Everything that acts on the Claude app window, and which app is in front.
 
     public static class ClaudeApp
     {
@@ -13,6 +13,11 @@ namespace Loupedeck.KeyboPlugin
 
         private static readonly Regex ValidBridgeId = new Regex("^session_[A-Za-z0-9]+$");
         private static readonly Regex ValidLocalId = new Regex("^local_[A-Za-z0-9-]{1,64}$");
+
+        // lsappinfo info prints `"Name" ASN:…` on its first line, then `bundleID="…"` and `pid = 123`.
+        private static readonly Regex FrontName = new Regex("^\"(.*)\" ASN:", RegexOptions.Multiline);
+        private static readonly Regex FrontBundleId = new Regex("bundleID=\"([^\"]+)\"");
+        private static readonly Regex FrontPid = new Regex(@"\bpid = (\d+)");
 
         // The link that opens a session, or null. Bridge IDs exist only while Remote Control is on, so the local
         // link is the fallback.
@@ -53,10 +58,25 @@ namespace Loupedeck.KeyboPlugin
             return IsFront(BundleId);
         }
 
-        public static Boolean IsFront(String bundleId)
+        public static Boolean IsFront(String bundleId) => Front()?.BundleId == bundleId;
+
+        // The app in front: its bundle ID, process and name, as lsappinfo prints them. Null if lsappinfo can't say.
+        public static FrontApp Front()
         {
             var front = Shell.Run("/usr/bin/lsappinfo", "front").Output.Trim();
-            return Shell.Run("/usr/bin/lsappinfo", "info", "-only", "bundleid", front).Output.Contains($"\"{bundleId}\"");
+
+            if (front.Length == 0)
+            {
+                return null;
+            }
+
+            var info = Shell.Run("/usr/bin/lsappinfo", "info", "-only", "bundleid", "-only", "pid", "-only", "name", front).Output;
+            var bundleId = FrontBundleId.Match(info);
+            var pid = FrontPid.Match(info);
+            var name = FrontName.Match(info);
+            return new FrontApp(bundleId.Success ? bundleId.Groups[1].Value : null, pid.Success ? Int32.Parse(pid.Groups[1].Value) : 0, name.Success ? name.Groups[1].Value : null);
         }
+
+        public record FrontApp(String BundleId, Int32 Pid, String Name);
     }
 }

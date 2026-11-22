@@ -21,9 +21,9 @@ namespace Loupedeck.KeyboPlugin
     }
 
     // Progress is the step a busy session is on, when it has a plan.
-    // A Teams chat or Safari tab appears only on session keys: it's built from the key's own ID and never joins All, so
-    // Keybo ignores it.
-    public record SessionInfo(String Id, String Name, SessionStatus Status, String BridgeId, Progress Progress = null, Boolean IsCodex = false, Boolean IsTeams = false, Boolean IsSafari = false);
+    // A Teams chat, Safari tab or any app's window appears only on session keys: it's built from the key's own ID and never
+    // joins All, so Keybo ignores it. An app's window carries its app's bundle ID and Dock badge.
+    public record SessionInfo(String Id, String Name, SessionStatus Status, String BridgeId, Progress Progress = null, Boolean IsCodex = false, Boolean IsTeams = false, Boolean IsSafari = false, Boolean IsApp = false, String App = null, String Badge = null);
 
     // Reads Claude's own session files, so nothing has to be configured in Claude.
     // These files are undocumented. All knowledge of their format stays in this class.
@@ -79,27 +79,46 @@ namespace Loupedeck.KeyboPlugin
         // The session on screen right now. Claude logs a switch at once, but its session file
         // catches up about a second later, so this reads the log when a key needs the answer now.
         // When Codex is in front, the thread it last opened. If its log says nothing, its most recently active thread.
-        // When Teams is in front, the chat open in its main window. When Safari is, its front tab.
-        public SessionInfo FocusedNow() =>
-            ClaudeApp.IsFront(TeamsChats.BundleId) ? TeamsChats.ReadOpenChat()
-            : ClaudeApp.IsFront(SafariTabs.BundleId) ? SafariTabs.ReadFront()
-            : ClaudeApp.IsFront(CodexThreads.BundleId)
-                ? this.Get(CodexThreads.ReadOpenThreadId()) ?? this.Get(this._snapshot.LatestCodexId)
-                : this.Get(ReadFocusedIdFromLog()) ?? this.Current;
+        // When Teams is in front, the chat open in its main window. When Safari is, its front tab. When any other app is,
+        // its front window.
+        public SessionInfo FocusedNow()
+        {
+            var front = ClaudeApp.Front();
+
+            return front?.BundleId switch
+            {
+                TeamsChats.BundleId => TeamsChats.ReadOpenChat(),
+                SafariTabs.BundleId => SafariTabs.ReadFront(),
+                CodexThreads.BundleId => this.Get(CodexThreads.ReadOpenThreadId()) ?? this.Get(this._snapshot.LatestCodexId),
+                ClaudeApp.BundleId or null => this.Get(ReadFocusedIdFromLog()) ?? this.Current,
+                _ => AppWindows.ReadFront(front),
+            };
+        }
 
         // A key forgets its session only once the session is surely gone. Codex threads count only after Codex has been read.
         // Teams chats are never gone: Teams shows only recent chats, so one out of sight is still there. Neither are Safari
-        // tabs: a closed one opens again.
-        public Boolean IsGone(String id) => !TeamsChats.IsTeamsId(id) && !SafariTabs.IsSafariId(id) && this.Get(id) == null && (id.StartsWith("local_") || this._codexRead);
+        // tabs (a closed one opens again) or app windows (a tap at least opens the app).
+        public Boolean IsGone(String id) => !TeamsChats.IsTeamsId(id) && !SafariTabs.IsSafariId(id) && !AppWindows.IsAppId(id) && this.Get(id) == null && (id.StartsWith("local_") || this._codexRead);
 
-        // The session keys pass their IDs, so Teams unread is watched only for pinned chats.
-        public void WatchTeams(IEnumerable<String> keyIds) => TeamsChats.Watch(keyIds);
+        // The session keys pass their IDs, so Teams unread and app states are watched only for what's pinned.
+        public void WatchPins(IEnumerable<String> keyIds)
+        {
+            var ids = keyIds.ToList();
+            TeamsChats.Watch(ids);
+            AppWindows.Watch(ids);
+        }
 
-        public SessionInfo Get(String id) => id == null ? null : TeamsChats.FromId(id) ?? SafariTabs.FromId(id) ?? this._snapshot.All.FirstOrDefault(s => s.Id == id);
+        public SessionInfo Get(String id) => id == null ? null : TeamsChats.FromId(id) ?? SafariTabs.FromId(id) ?? AppWindows.FromId(id) ?? this._snapshot.All.FirstOrDefault(s => s.Id == id);
 
         // Opens a session or thread in its app, and clears its green now rather than on the next refresh.
         public void Open(SessionInfo session)
         {
+            if (session.IsApp)
+            {
+                AppWindows.Open(session.Id);
+                return;
+            }
+
             if (session.IsSafari)
             {
                 SafariTabs.Open(session.Id);
@@ -146,8 +165,9 @@ namespace Loupedeck.KeyboPlugin
                 var snapshot = this.BuildSnapshot();
                 var before = this._snapshot;
                 var teamsChanged = TeamsChats.Poll();
+                var appsChanged = AppWindows.Poll();
 
-                if (teamsChanged || !snapshot.All.SequenceEqual(before.All) || snapshot.CurrentId != before.CurrentId || snapshot.LatestCodexId != before.LatestCodexId)
+                if (teamsChanged || appsChanged || !snapshot.All.SequenceEqual(before.All) || snapshot.CurrentId != before.CurrentId || snapshot.LatestCodexId != before.LatestCodexId)
                 {
                     this._snapshot = snapshot;
 

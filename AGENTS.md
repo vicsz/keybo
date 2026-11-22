@@ -37,7 +37,7 @@ sums up the Mac and the Claude and Codex sessions. Around it: session keys with 
 - `TapOrHold.cs`: tap versus hold, the same on every key with both (session keys, Cancel, Pomodoro, Keybo): taps act on release, a hold starts at LongPress, and keys that only get `RunCommand` treat it as a tap.
 - `HoldMenu.cs`: hold to choose, on the held key itself: from LongPress it steps through choices a second each, release picks the one showing, and the last is always Never mind. Session keys (Pin here, Unpin) and Cancel (Archive) use it. No key ever draws for another, so it works on any page and layout.
 - `Shell.cs`: every command the plugin starts (open, afplay, lsappinfo, ps, sqlite3, security, the Claude CLI), with a timeout. It never logs what a command prints.
-- `KeyArt.cs`: draws the keys: shared colours, the stat keys' label, value, graph and bar, and Keybo with his sign (`KeyArt.Pet`). `AgentArt.cs` is the other half of the same class: session keys, Usage, the shortcut keys and hold choices. Session keys carry their app's real icon on the bubble's top-right corner (Claude, ChatGPT for Codex, Teams), read from `/Applications` at run time with `Mac.AppIcon`, so no logos are in the repo.
+- `KeyArt.cs`: draws the keys: shared colours, the stat keys' label, value, graph and bar, and Keybo with his sign (`KeyArt.Pet`). `AgentArt.cs` is the other half of the same class: session keys, Usage, the shortcut keys and hold choices. Session keys carry their app's real icon on the bubble's top-right corner (Claude, ChatGPT for Codex, Teams, Safari, any pinned app), found by bundle ID with `Mac.AppPath` and drawn with `Mac.AppIcon` at run time, so no logos are in the repo. A pinned app that isn't running gets its icon grey. Safari tabs and app windows draw a small window (`DrawWindow`) instead of the bubble.
 
 Keybo (the Keybo key, group Pets; the class is still `PetCommand`):
 - `PetMood.cs`: what he shows, worst first: Mac red > session waiting > Pomodoro done > session done > Mac amber > offline > live (an app recording from the mic, not muted) > focus (a Pomodoro running) > sleepy (10 min without input) > idle. Sessions come straight from `ClaudeSessionStore.All`. Memory counts only at critical pressure (4), because macOS sits at 2 for hours, and shows as `walls`, kept 10 s after it drops so they don't flap. A tap sets the sign aside: a session until it leaves that state, the Pomodoro until it's cleared, a Mac problem for 30 minutes. Sign layout: app mark + ! or ✓ + count.
@@ -56,14 +56,16 @@ Claude and Codex:
 - `CodexThreads.cs`: the same for Codex. All Codex file knowledge stays here.
 - `TeamsChats.cs`: Teams chats on session keys (which chat is open, opening one), through Accessibility. All Teams knowledge stays here. Teams chats never join `ClaudeSessionStore.All`, so Keybo ignores them, and they're never gone.
 - `SafariTabs.cs`: Safari tabs on session keys (the front tab, switching back to one), through Safari's AppleScript. All Safari knowledge stays here. Like Teams chats, tabs never join `ClaudeSessionStore.All` and are never gone.
+- `AppWindows.cs`: any other app's window on session keys (the front window, raising it again, whether its app runs and its Dock badge), through Accessibility. All knowledge of other apps' windows stays here. Like Teams chats and Safari tabs, app windows never join `ClaudeSessionStore.All` and are never gone.
 - `ClaudeTranscripts.cs`: step count (2/4) for busy sessions, from their task list.
 - `ClaudeUsage.cs`: usage and pace for the Usage key. All usage knowledge stays here.
-- `ClaudeApp.cs`: everything that acts on the Claude window: opening a session, bringing Claude to the front, and which app is in front.
+- `ClaudeApp.cs`: everything that acts on the Claude window: opening a session, bringing Claude to the front, and which app is in front (`Front`: bundle ID, process and name from one `lsappinfo` call).
 - `SessionKeyLocks.cs`: saves which session is on which key.
 
 Mac and tools:
 - `SystemMonitor.cs`: one sampler for the stat keys and Keybo, once a second (temperature every 2 s, busiest app and connection every 5 s, disk and battery every 10 s). Keys call `Use` when drawn; it stops 5 s after the last draw.
-- `Mac.cs`: kernel, Foundation, Wi-Fi, AppKit and CoreGraphics calls (Mach host statistics, sysctl, disk space, CoreWLAN, app icons, process paths, seconds since last input).
+- `Mac.cs`: kernel, Foundation, Wi-Fi, AppKit and CoreGraphics calls (Mach host statistics, sysctl, disk space, CoreWLAN, app icons, where apps are installed and running, process paths, seconds since last input).
+- `Accessibility.cs`: the Accessibility calls Teams chats and app pins share: a `Tree` per read that releases everything it copied, and Retain and Release for an element kept longer, like a pinned window.
 - `Sensors.cs`: IOKit hardware readings: GPU, disk traffic, temperatures, battery.
 - `Dictation.cs`: whether Claude or ChatGPT is recording, shared by Dictate and Return (started on load).
 - `Audio.cs`: CoreAudio: the default microphone and sound output (in use, muted, volume, muting them, and the app recording from the mic) for Mic and Sound, and which apps are recording for Dictate. Both keys show four states: free, in use, muted, and amber for muted while in use. `SoundCommand` steps its waves every 200 ms, only while something plays and the key is drawn.
@@ -119,6 +121,15 @@ Mac and tools:
 - AppleScript (`osascript`): `URL` and `name` of `current tab of front window` when pinning, read only while Safari is in front so it never starts Safari. A tap looks through every window's tabs for the pinned address, then the same page (address up to `?` or `#`, since pages rewrite their query), then the same title; it makes that tab current and raises its window, and only if none matches opens the address in a new tab. Needs Automation permission for Logi Plugin Service (asked once).
 - A pinned tab's key ID is `safari:<address>\n<title>`. Only http and https addresses. Never log either.
 - Safari's own data (`~/Library/Safari`, including site icons) is locked by macOS, so keys show no site icons.
+
+## Any app (Accessibility)
+- With any other app in front, pinning reads its `AXFocusedWindow` (else `AXMainWindow`): `AXTitle` and `AXDocument`. A pinned window's key ID is `app:<bundle ID>\n<name>\n<document>\n<title>`. Titles can be private: never log them.
+- The key's name is the first part of the title (split at ` — `, ` – `, ` - ` and ` | `) that isn't the app's name or a file name, so a VS Code window shows its folder and Terminal its directory.
+- While the window is open the plugin keeps its element (retained); a closed one stops answering `AXRole`. Without it, a tap matches the app's `AXWindows` by document, then exact title, then a title part equal to the key's name. With no match it runs `open -b <bundle ID>` and keeps looking for about 4 s. Accessibility usually lists only the current Space's windows, so one on another Space may only turn up once `open -b` has switched there.
+- Raising: `AXMinimized` off, `AXRaise`, `AXMain`, and the app's `AXFrontmost`; if the app still isn't in front 150 ms later, `open -b`.
+- Running: `NSRunningApplication runningApplicationsWithBundleIdentifier:`. Dock badges come from the Dock's own tree: its `AXList` children carry `AXStatusLabel` (the badge) and `AXURL` (the app). `lsappinfo` shows no `StatusLabel`, even for a test badge.
+- Icons by bundle ID (`URLForApplicationWithBundleIdentifier:`), not a path: `/Applications/Safari.app` is a symlink into Safari's Cryptex, and an icon read through a symlink gets Finder's alias arrow.
+- An empty key pins whatever is in front, so pinning a Claude session needs Claude in front.
 
 ## Codex (undocumented)
 - Threads: `~/.codex/state_5.sqlite`. Logs: `~/Library/Logs/com.openai.codex`.
