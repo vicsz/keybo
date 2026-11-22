@@ -42,6 +42,11 @@ namespace Loupedeck.KeyboPlugin
         private const Int32 AppIconPixels = 64;
         private static readonly ConcurrentDictionary<(String App, Boolean Faded), Byte[]> AppIcons = new ConcurrentDictionary<(String, Boolean), Byte[]>();
 
+        // On the Usage key the icon tucks into the key's top-right corner, a little smaller so it clears the ring and the tick.
+        private const Int32 UsageIconSize = 26;
+        private const Int32 UsageIconLeft = 88;
+        private const Int32 UsageIconTop = 2;
+
         // A pinned app's Dock badge sits in its window, under the toolbar line. DrawText sets digits a little above the middle
         // of their box, so the box starts lower to centre them in the window.
         private const Int32 WindowBadgeTop = 23;
@@ -138,8 +143,9 @@ namespace Loupedeck.KeyboPlugin
         // The arc takes the forecast's colour, and so does the footer when it's a warning. The amount sits in the middle
         // of the ring, a size smaller when it's four characters or more (100%, $150) so it clears the ring. DrawText sets
         // digits above the middle of their box, so the box starts lower: measured on rendered keys, that puts the digits
-        // on the ring's centre to within half a pixel. The ring is drawn at key size.
-        public static BitmapImage Usage(PluginImageSize imageSize, Double left, Double pace, UsageTone tone, String amount, String footer, Boolean footerWarns)
+        // on the ring's centre to within half a pixel. The ring is drawn at key size. The app's icon (a bundle ID) says
+        // whose limit it is.
+        public static BitmapImage Usage(PluginImageSize imageSize, Double left, Double pace, UsageTone tone, String amount, String footer, Boolean footerWarns, String app)
         {
             const Single cx = 58, cy = 50, r = 37, stroke = 8;
             var circumference = 2 * MathF.PI * r;
@@ -164,6 +170,12 @@ namespace Loupedeck.KeyboPlugin
                 builder.DrawImage(BitmapImage.FromSvg(svg), 0, 0, pixels, pixels);
                 builder.DrawText(amount, 0, Scaled(amountTop, scale), builder.Width, Scaled(32, scale), BitmapColor.FromRgb(tone == UsageTone.Stale ? Muted : Text), Scaled(amountSize, scale));
                 builder.DrawText(footer, 0, Scaled(94, scale), builder.Width, Scaled(18, scale), BitmapColor.FromRgb(footerWarns ? color : Muted), Scaled(14, scale));
+
+                if (AppIcon(app) is Byte[] icon)
+                {
+                    builder.DrawImage(icon, Scaled(UsageIconLeft, scale), Scaled(UsageIconTop, scale), Scaled(UsageIconSize, scale), Scaled(UsageIconSize, scale));
+                }
+
                 return builder.ToImage();
             }
         }

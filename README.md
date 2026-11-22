@@ -48,7 +48,7 @@ In Logi Options+ the keys come in four groups.
 | Dictate | Start or stop dictation in the app in front: Claude's mic in Claude, ChatGPT's dictation anywhere else. Faint red arcs ripple round the mic while either is recording | — |
 | Return | Press Return in the app in front: sends, or finishes dictation. A soft red dot shows while you're dictating | — |
 | Cancel | Press Escape in the app in front: cancels dictation or interrupts | Choose: Archive |
-| Usage | Switch between your 5-hour and weekly limits | — |
+| Usage | Step through your limits: Claude's 5 hours and week, then Codex's | — |
 
 Session key colours: blue dots = working, amber = waiting for you, green = finished, grey = idle.
 A small icon on the bubble's top-right corner shows the app: Claude, ChatGPT for Codex, Teams, Safari or any other app. A Teams chat turns green with a dot when it has a new message: pin it with Teams in front and the chat open, and a tap opens it again. Unread only updates while Teams shows its Chat view. Teams keys need Logi Plugin Service allowed under Privacy & Security > Accessibility. A Safari tab shows a small browser window and its title: pin it with Safari in front, and a tap switches back to it, or opens it again if it was closed. The first time, macOS asks to let Logi Plugin Service control Safari: choose OK.
@@ -63,14 +63,16 @@ let go on the one you want. A session key offers Pin here (what's in front goes 
 Never mind. Cancel offers Archive (the Claude session on screen), then Never mind. To archive a key's session, tap the
 key to open it, then hold Cancel.
 
-**Usage** shows how much of your Claude limit is left and whether you're on track. The ring is what's left, and the
-white tick is where an even pace would leave you today. The colour is the forecast: green, you'll finish under; amber,
-faster than an even pace; red, you'll run out before it resets, and the line under the ring says roughly when; grey,
-the number is out of date. Plans show the 5-hour limit, and a tap switches to the week and back; if the week heads
-for red, the key shows it even on the 5-hour view.
-Monthly spend-limit accounts show dollars. It checks every 5 minutes and needs the Claude CLI signed in
-(`claude auth login`). The first time, macOS asks to let `security` read "Claude Code-credentials": choose
-**Always Allow**. Keybo only reads that sign-in while a Usage key is on the keypad, and never saves or logs it.
+**Usage** shows how much is left of your Claude and Codex limits and whether you're on track, with the app's icon in
+the corner. The ring is what's left, and the white tick is where an even pace would leave you today. The colour is the
+forecast: green, you'll finish under; amber, faster than an even pace; red, you'll run out before it resets, and the
+line under the ring says roughly when; grey, the number is out of date. A tap steps through the limits it can read:
+Claude's 5 hours and week, then Codex's. A week heading for red takes over the key, whichever app it's from, until you
+tap past it. Claude accounts with a spend limit show the month in dollars. It checks every 5 minutes.
+Claude's limits need the Claude CLI signed in (`claude auth login`). The first time, macOS asks to let `security` read
+"Claude Code-credentials": choose **Always Allow**. Keybo only reads that sign-in while a Usage key is on the keypad,
+and never saves or logs it. Codex's limits come from the ChatGPT app, signed in with your ChatGPT account, through the
+Codex tool inside it, which handles its own sign-in.
 
 ### System
 
@@ -107,7 +109,7 @@ The stat keys only read the system while one of them is on the keypad.
 ## Install
 
 You need a Mac, Logi Options+ (signed in to a Logi account) and an MX Creative Keypad. The Claude keys need the
-Claude desktop app; Usage also needs the Claude CLI.
+Claude desktop app; Usage also needs the Claude CLI, and the ChatGPT app for Codex's limits.
 
 ### 1. Get the plugin
 
@@ -156,7 +158,8 @@ Add this to `~/.claude/CLAUDE.md` so session names fit on a key:
 - Codex covers the session keys, Return and Cancel. Archive is Claude only.
 - Six separate session keys, because a key isn't told where it sits on the keypad.
 - The dictation shortcuts are fixed. ChatGPT's stop sound only plays when a keypad key ends dictation.
-- Usage reads an undocumented Claude endpoint. It goes grey rather than show a wrong number.
+- Usage reads an undocumented Claude endpoint and Codex's experimental app server, so an update can break either. It
+  goes grey rather than show a wrong number.
 - CPU is the share of all cores. Busiest app counts one core as 100%, so a busy app can show over 100%.
 - Network counts Wi-Fi and Ethernet, not VPN tunnels. Wi-Fi's link speed moves around, as macOS reports it.
 - CPU temp uses a private macOS API, so an update could break it.

@@ -8,30 +8,16 @@ namespace Loupedeck.KeyboPlugin
     using System.Net.Http;
     using System.Net.Http.Headers;
     using System.Text.Json;
-    using System.Threading;
 
-    // Claude's real usage, from the same server call /usage makes, using the Claude CLI's sign-in.
-    // All usage knowledge stays here. The sign-in is read from the Keychain each time, kept only in memory,
-    // and never logged. When it has expired, running `claude -p /usage` makes the CLI refresh it (free, no model call).
-    // Nothing starts until a Usage key is first drawn, so people who don't place one never have their sign-in read.
-    // Plans have a 5-hour and a weekly limit, and tapping the key switches between them. Spend-limit accounts have the month only.
+    // Claude's limits, from the same server call /usage makes, using the Claude CLI's sign-in. All Claude usage knowledge
+    // stays here. The sign-in is read from the Keychain each time, kept only in memory, and never logged. When it has
+    // expired, running `claude -p /usage` makes the CLI refresh it (free, no model call).
+    // Plans have a 5-hour and a weekly limit. Spend-limit accounts have the month only.
 
-    public enum UsageTone { Good, Warn, Bad, Stale }
-
-    // Used and Limit are dollars on accounts with a spend limit, otherwise percent of the plan limit (Limit = 100).
-    public record UsageReading(Boolean IsDollars, Double Used, Double Limit, DateTime PeriodStart, DateTime PeriodEnd, String Severity, String Label, DateTime FetchedAt);
-
-    // Where you stand against an even pace through the period: how much of it has gone, when you'd run out at this rate
-    // (only if that's before it resets), and the forecast.
-    public record UsagePace(Double TimeGone, DateTime? RunsOut, UsageTone Tone);
-
-    public sealed class ClaudeUsage : IDisposable
+    public sealed class ClaudeUsage : UsageFeed
     {
         private const String UsageUrl = "https://api.anthropic.com/api/oauth/usage";
-        private static readonly TimeSpan PollEvery = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan CliRefreshCooldown = TimeSpan.FromMinutes(30);
-        private static readonly TimeSpan StaleAfter = TimeSpan.FromMinutes(15);
-        private static readonly TimeSpan KeepHistory = TimeSpan.FromDays(31);
         private static readonly String Home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
 
@@ -44,202 +30,18 @@ namespace Loupedeck.KeyboPlugin
             Path.Combine(Home, ".npm-global", "bin", "claude"),
         };
 
-        private readonly String _dataDirectory;
-        private readonly String _historyPath;
-        private readonly String _latestPath;
-        private readonly Object _gate = new Object();
-        private Timer _timer;
-        private Int32 _polling;
         private DateTime _lastCliRefresh = DateTime.MinValue;
-        private String _lastLogged;
-        private List<(DateTime At, Double Used, DateTime PeriodStart)> _history;
-        private UsageReading _session;
-        private UsageReading _long;
-        private Boolean _showSession = true;
-        private DateTime _acknowledgedRedWeek;
 
         public ClaudeUsage(String dataDirectory)
+            : base(dataDirectory, "usage")
         {
-            this._dataDirectory = dataDirectory;
-            this._historyPath = Path.Combine(dataDirectory, "usage-history.json");
-            this._latestPath = Path.Combine(dataDirectory, "usage-latest.json");
         }
 
-        public event Action Changed;
+        public override String Name => "Claude";
 
-        // The reading the key shows: the month on spend-limit accounts, otherwise the 5-hour or weekly limit you picked.
-        // A weekly limit heading for red takes over the 5-hour view, until you tap past it once that week.
-        public UsageReading Latest
-        {
-            get
-            {
-                if (this._long == null || this._long.IsDollars || this._session == null || !this._showSession)
-                {
-                    return this._long ?? this._session;
-                }
+        public override String App => ClaudeApp.BundleId;
 
-                var weekIsRed = this.GetPace(this._long)?.Tone == UsageTone.Bad && this._acknowledgedRedWeek != this._long.PeriodStart;
-                return weekIsRed ? this._long : this._session;
-            }
-        }
-
-        // A short reason the key can show when there's no reading, like "Sign in to CLI".
-        public String Problem { get; private set; }
-
-        private static Boolean IsStale(UsageReading reading) => DateTime.UtcNow - reading.FetchedAt > StaleAfter;
-
-        public void EnsureStarted()
-        {
-            lock (this._gate)
-            {
-                this._timer ??= new Timer(_ => this.Poll(), null, TimeSpan.Zero, PollEvery);
-            }
-        }
-
-        // Switches between the 5-hour and weekly limits. With only one to show, it does nothing: the key checks every 5 minutes.
-        public void Toggle()
-        {
-            if (this._session == null || this._long == null || this._long.IsDollars)
-            {
-                return;
-            }
-
-            var shown = this.Latest;
-
-            if (shown == this._long && this._showSession)
-            {
-                this._acknowledgedRedWeek = this._long.PeriodStart; // The week had taken over: tapping means show the 5 hours anyway.
-            }
-            else
-            {
-                this._showSession = !this._showSession;
-            }
-
-            this.Changed?.Invoke();
-        }
-
-        public void Dispose() => this._timer?.Dispose();
-
-        public UsagePace GetPace(UsageReading reading)
-        {
-            if (reading == null)
-            {
-                return null;
-            }
-
-            var now = DateTime.UtcNow;
-            var period = reading.PeriodEnd - reading.PeriodStart;
-            var timeGone = Math.Clamp((now - reading.PeriodStart) / period, 0, 1);
-            var ahead = reading.Used - (reading.Limit * timeGone);
-            var rate = this.RatePerHour(reading, now);
-            DateTime? runsOut = reading.Used >= reading.Limit ? now
-                : rate > 0 ? now.AddHours((reading.Limit - reading.Used) / rate) : null;
-
-            UsageTone tone;
-
-            if (IsStale(reading))
-            {
-                tone = UsageTone.Stale;
-            }
-            else if (runsOut != null && runsOut < reading.PeriodEnd - (period * 0.1))
-            {
-                tone = UsageTone.Bad;
-            }
-            else if (ahead > 0 && timeGone > 0.03)
-            {
-                tone = UsageTone.Warn;
-            }
-            else
-            {
-                tone = UsageTone.Good;
-            }
-
-            // Never show calmer than Anthropic does.
-            if (tone != UsageTone.Stale && reading.Severity is not (null or "normal"))
-            {
-                var floor = reading.Severity == "warning" ? UsageTone.Warn : UsageTone.Bad;
-                tone = (UsageTone)Math.Max((Int32)tone, (Int32)floor);
-            }
-
-            return new UsagePace(timeGone, runsOut < reading.PeriodEnd ? runsOut : null, tone);
-        }
-
-        // The recent rate: the last 7 days of this period when there's enough history, otherwise the average so far.
-        // Five hours is too short for history to help, so it always uses the average.
-        private Double RatePerHour(UsageReading reading, DateTime now)
-        {
-            var hours = (now - reading.PeriodStart).TotalHours;
-
-            if (reading.PeriodEnd - reading.PeriodStart <= TimeSpan.FromDays(1))
-            {
-                return hours > 0 ? reading.Used / hours : 0;
-            }
-
-            var since = now - TimeSpan.FromDays(7);
-            var minimumSpan = (reading.PeriodEnd - reading.PeriodStart) * 0.1;
-            var oldest = this._history?
-                .Where(h => h.PeriodStart == reading.PeriodStart && h.At >= since)
-                .OrderBy(h => h.At)
-                .FirstOrDefault();
-
-            if (oldest is { } start && start.At != default && now - start.At >= minimumSpan)
-            {
-                return Math.Max(0, reading.Used - start.Used) / (now - start.At).TotalHours;
-            }
-
-            return hours > 0 ? reading.Used / hours : 0;
-        }
-
-        private void Poll()
-        {
-            if (Interlocked.Exchange(ref this._polling, 1) == 1)
-            {
-                return;
-            }
-
-            try
-            {
-                this._history ??= this.LoadHistory();
-
-                if (this._session == null && this._long == null)
-                {
-                    this.LoadLatest();
-                }
-
-                var (session, longer) = this.Fetch();
-
-                if (longer != null || session != null)
-                {
-                    this._session = session;
-                    this._long = longer;
-                    this.Problem = null;
-
-                    if (longer != null)
-                    {
-                        this.Remember(longer);
-                    }
-
-                    this.SaveLatest();
-
-                    this.LogOnce($"Usage: {Describe(longer)}{(session != null ? ", " + Describe(session) : String.Empty)}");
-                }
-            }
-            catch (Exception ex)
-            {
-                this.Problem = "No usage";
-                this.LogOnce("Could not read Claude usage: " + ex.Message);
-            }
-            finally
-            {
-                Interlocked.Exchange(ref this._polling, 0);
-                this.Changed?.Invoke();
-            }
-        }
-
-        private static String Describe(UsageReading reading) =>
-            reading == null ? "none" : $"{reading.Used:0.##} of {reading.Limit:0.##} ({reading.Label})";
-
-        private (UsageReading Session, UsageReading Long) Fetch()
+        protected override (UsageReading Session, UsageReading Long) Fetch()
         {
             var signIn = ReadSignIn();
 
@@ -381,6 +183,10 @@ namespace Loupedeck.KeyboPlugin
             }
         }
 
+        // What the command printed, or null if it failed or timed out.
+        private static String Run(String command, TimeSpan timeout, params String[] arguments) =>
+            Shell.Run(command, timeout, arguments) is { ExitCode: 0 } result ? result.Output : null;
+
         // `claude -p /usage` refreshes the CLI's own sign-in without calling a model. Limited to once per half hour.
         private Boolean RefreshThroughCli()
         {
@@ -402,88 +208,6 @@ namespace Loupedeck.KeyboPlugin
             Run(cli, TimeSpan.FromSeconds(60), "-p", "/usage");
             PluginLog.Info("Refreshed the Claude CLI sign-in for usage");
             return true;
-        }
-
-        // What the command printed, or null if it failed or timed out.
-        private static String Run(String command, TimeSpan timeout, params String[] arguments) =>
-            Shell.Run(command, timeout, arguments) is { ExitCode: 0 } result ? result.Output : null;
-
-        // One amount every poll, kept for a month, so the key can use your recent rate rather than the month's average.
-        private void Remember(UsageReading reading)
-        {
-            var cutoff = DateTime.UtcNow - KeepHistory;
-            this._history.RemoveAll(h => h.At < cutoff);
-            this._history.Add((reading.FetchedAt, reading.Used, reading.PeriodStart));
-
-            try
-            {
-                Directory.CreateDirectory(this._dataDirectory);
-                var rows = this._history.Select(h => new[] { new DateTimeOffset(h.At).ToUnixTimeSeconds(), h.Used, new DateTimeOffset(h.PeriodStart).ToUnixTimeSeconds() });
-                var temporary = this._historyPath + ".tmp";
-                File.WriteAllText(temporary, JsonSerializer.Serialize(rows));
-                File.Move(temporary, this._historyPath, overwrite: true);
-            }
-            catch (IOException ex)
-            {
-                this.LogOnce("Could not save usage history: " + ex.Message);
-            }
-        }
-
-        // The last good readings, so a reload or a refused call shows them (greyed out once old) instead of nothing.
-        private void LoadLatest()
-        {
-            try
-            {
-                if (File.Exists(this._latestPath))
-                {
-                    var saved = JsonSerializer.Deserialize<UsageReading[]>(File.ReadAllText(this._latestPath));
-                    this._session = saved?.ElementAtOrDefault(0);
-                    this._long = saved?.ElementAtOrDefault(1);
-                    this.Changed?.Invoke();
-                }
-            }
-            catch (Exception ex)
-            {
-                this.LogOnce("Could not read the last usage: " + ex.Message);
-            }
-        }
-
-        private void SaveLatest()
-        {
-            try
-            {
-                var temp = this._latestPath + ".tmp";
-                File.WriteAllText(temp, JsonSerializer.Serialize(new[] { this._session, this._long }));
-                File.Move(temp, this._latestPath, true);
-            }
-            catch (Exception ex)
-            {
-                this.LogOnce("Could not save the last usage: " + ex.Message);
-            }
-        }
-
-        private List<(DateTime At, Double Used, DateTime PeriodStart)> LoadHistory()
-        {
-            try
-            {
-                var rows = JsonSerializer.Deserialize<Double[][]>(File.ReadAllText(this._historyPath));
-                return rows.Where(r => r.Length == 3)
-                    .Select(r => (DateTimeOffset.FromUnixTimeSeconds((Int64)r[0]).UtcDateTime, r[1], DateTimeOffset.FromUnixTimeSeconds((Int64)r[2]).UtcDateTime))
-                    .ToList();
-            }
-            catch (Exception)
-            {
-                return new List<(DateTime, Double, DateTime)>();
-            }
-        }
-
-        private void LogOnce(String message)
-        {
-            if (message != this._lastLogged)
-            {
-                this._lastLogged = message;
-                PluginLog.Info(message);
-            }
         }
     }
 }

@@ -8,7 +8,7 @@ sums up the Mac and the Claude and Codex sessions. Around it: session keys with 
 - Keep it minimal: no generated, optional, sample or research files.
 - Commit only when asked.
 - You can't see or press the keypad. Build, then ask the user to check on hardware.
-- Never print or log tokens: `~/.claude/sessions/*.key`, or the Keychain token the Usage key reads.
+- Never print or log tokens: `~/.claude/sessions/*.key`, `~/.codex/auth.json`, or the Keychain token the Usage key reads.
 - If `NOTES.local.md` exists (gitignored), read it before brainstorming or adding keys, and keep it current. Never copy its contents into tracked files.
 - Pet art comes from Codex. Only the frames in `Pet/` belong in the repo; the rest of its art stays out.
 
@@ -21,7 +21,7 @@ sums up the Mac and the Claude and Codex sessions. Around it: session keys with 
 - GitHub builds skip the Logi link and reload step (`CI` is true there).
 
 ## Installing for a user
-1. Check the basics: macOS, and Logi Options+ signed in to a Logi account (plugins can't be added without one) with the keypad connected. The Claude keys need the Claude desktop app; Usage needs the Claude CLI. If something is missing, tell the user.
+1. Check the basics: macOS, and Logi Options+ signed in to a Logi account (plugins can't be added without one) with the keypad connected. The Claude keys need the Claude desktop app; Usage needs the Claude CLI, and the ChatGPT app for Codex's limits. If something is missing, tell the user.
 2. `dotnet --version` must be 10 or later. If not: `brew install --cask dotnet-sdk`.
 3. If `LogiPluginTool` is missing: `dotnet tool install --global LogiPluginTool`. Make sure `~/.dotnet/tools` is on `PATH`.
 4. Build from `KeyboPlugin/`: `dotnet build`. The repo must stay where it is, since Logi runs the plugin from `bin/`.
@@ -31,12 +31,12 @@ sums up the Mac and the Claude and Codex sessions. Around it: session keys with 
 8. To uninstall: `dotnet clean` in `KeyboPlugin/` removes the link.
 
 ## Code map (`KeyboPlugin/src/`)
-- `KeyboPlugin.cs`: owns what keys share: `SystemMonitor`, `KeepAwake`, `Pomodoro`, `ClaudeSessionStore` and `Dictation` (started on load), `ClaudeUsage` (started by the first Usage draw) and the `MessageSent` event (Return sent). Keys never talk to each other directly; they go through these.
+- `KeyboPlugin.cs`: owns what keys share: `SystemMonitor`, `KeepAwake`, `Pomodoro`, `ClaudeSessionStore` and `Dictation` (started on load), `Usage` (started by the first Usage draw) and the `MessageSent` event (Return sent). Keys never talk to each other directly; they go through these.
 - `Actions/`: one file per key. `StatCommand.cs` is what the stat keys share; `ShortcutCommand.cs` what Dictate, Return and Cancel share. Action class names are what placed keys remember, so they keep their first names (`PetCommand`, `GoCommand`, `StopCommand`, `InternetCommand`, `DiskCommand`); display names and groups are free to change.
 - `Groups.cs`: the four Options+ groups: Agents, System, Tools, Pets.
 - `TapOrHold.cs`: tap versus hold, the same on every key with both (session keys, Cancel, Pomodoro, Keybo): taps act on release, a hold starts at LongPress, and keys that only get `RunCommand` treat it as a tap.
 - `HoldMenu.cs`: hold to choose, on the held key itself: from LongPress it steps through choices a second each, release picks the one showing, and the last is always Never mind. Session keys (Pin here, Unpin) and Cancel (Archive) use it. No key ever draws for another, so it works on any page and layout.
-- `Shell.cs`: every command the plugin starts (open, afplay, lsappinfo, ps, sqlite3, security, the Claude CLI), with a timeout. It never logs what a command prints.
+- `Shell.cs`: every command the plugin starts (open, afplay, lsappinfo, ps, sqlite3, security, the Claude and Codex CLIs), with a timeout. `Ask` talks to one that answers on stdin and stdout (Codex's app server). It never logs what a command prints.
 - `KeyArt.cs`: draws the keys: shared colours, the stat keys' label, value, graph and bar, and Keybo with his sign (`KeyArt.Pet`). `AgentArt.cs` is the other half of the same class: session keys, Usage, the shortcut keys and hold choices. Session keys carry their app's real icon on the bubble's top-right corner (Claude, ChatGPT for Codex, Teams, Safari, any pinned app), found by bundle ID with `Mac.AppPath` and drawn with `Mac.AppIcon` at run time, so no logos are in the repo. A pinned app that isn't running gets its icon grey. Safari tabs and app windows draw a small window (`DrawWindow`) instead of the bubble.
 
 Keybo (the Keybo key, group Pets; the class is still `PetCommand`):
@@ -58,7 +58,7 @@ Claude and Codex:
 - `SafariTabs.cs`: Safari tabs on session keys (the front tab, switching back to one), through Safari's AppleScript. All Safari knowledge stays here. Like Teams chats, tabs never join `ClaudeSessionStore.All` and are never gone.
 - `AppWindows.cs`: any other app's window on session keys (the front window, raising it again, whether its app runs and its Dock badge), through Accessibility. All knowledge of other apps' windows stays here. Like Teams chats and Safari tabs, app windows never join `ClaudeSessionStore.All` and are never gone.
 - `ClaudeTranscripts.cs`: step count (2/4) for busy sessions, from their task list.
-- `ClaudeUsage.cs`: usage and pace for the Usage key. All usage knowledge stays here.
+- `Usage.cs`: the Usage key's shared part: each app's readings, pace and history (`UsageFeed`), and which limit shows. A tap steps through every limit with a reading, Claude's then Codex's; a week heading for red takes over, whichever app, until a tap moves past it. The key wears the app's icon. `ClaudeUsage.cs` and `CodexUsage.cs`: where each app's numbers come from. All usage knowledge stays in these three.
 - `ClaudeApp.cs`: everything that acts on the Claude window: opening a session, bringing Claude to the front, and which app is in front (`Front`: bundle ID, process and name from one `lsappinfo` call).
 - `SessionKeyLocks.cs`: saves which session is on which key.
 
@@ -134,6 +134,7 @@ Mac and tools:
 ## Codex (undocumented)
 - Threads: `~/.codex/state_5.sqlite`. Logs: `~/Library/Logs/com.openai.codex`.
 - Open a thread: `codex://threads/<id>` (`CodexThreads.Link`).
+- Usage: `codex app-server`, from the CLI inside ChatGPT.app (`Contents/Resources/codex-cli/bin/codex`; the app's bundle ID is `com.openai.codex`), marked experimental. JSON lines on stdin: `initialize` (with `clientInfo`), `initialized`, `account/rateLimits/read`; it answers only while stdin stays open. The reply's `result.rateLimits` has `primary` (300 min) and `secondary` (10080 min): `usedPercent`, `windowDurationMins`, `resetsAt` (Unix seconds). Codex refreshes its own sign-in, so Keybo never reads `~/.codex/auth.json`. The thread files' `token_count` events used to carry the same limits but stopped on Nov 20, 2026.
 - Dictation outside Claude: ChatGPT's single-tap shortcut, which the user sets to `Ctrl+Opt+Cmd+D`. Never hold a modifier key down from the plugin: a lost key-up left Control stuck system-wide (2026-11-15).
 - ChatGPT's dictation records as the process `Codex (Aperitif)`. `Audio.IsRecording` asks CoreAudio whether it's recording, to choose the start or stop sound and to make Return stop dictation.
 

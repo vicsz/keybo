@@ -6,7 +6,7 @@ namespace Loupedeck.KeyboPlugin
 
     public class KeyboPlugin : Plugin
     {
-        private ClaudeUsage _usage;
+        private Usage _usage;
 
         // A universal plugin: it works in every app rather than linking to one.
         public override Boolean UsesApplicationApiOnly => true;
@@ -28,8 +28,8 @@ namespace Loupedeck.KeyboPlugin
         // Whether Claude or ChatGPT is recording, for Dictate and Return.
         public Dictation Dictation { get; } = new Dictation();
 
-        // Claude's usage for the Usage key. It starts only when that key is first drawn.
-        public ClaudeUsage Usage => this._usage ??= new ClaudeUsage(this.GetPluginDataDirectory());
+        // Claude's and Codex's limits for the Usage key. Checking starts only when that key is first drawn.
+        public Usage Usage => this._usage ??= new Usage(this.GetPluginDataDirectory());
 
         // Raised when Return sends (not when it only stops dictation). Keybo throws a paper plane.
         public event Action MessageSent;
