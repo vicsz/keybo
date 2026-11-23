@@ -6,6 +6,7 @@ namespace Loupedeck.KeyboPlugin
     using System.IO;
     using System.Linq;
     using System.Net.NetworkInformation;
+    using System.Text.RegularExpressions;
     using System.Threading;
 
     // One sampler for every key. It reads once a second (slower readings less often) and raises Changed. It runs only while a key is being
@@ -69,14 +70,18 @@ namespace Loupedeck.KeyboPlugin
 
         public History DiskWriteHistory { get; } = new History();
 
-        // The default microphone: whether there is one, whether an app is recording from it, and whether it's muted.
+        // The mic an app is recording from, else the default: its name, whether an app is recording from it, and whether it's muted.
         public AudioState Mic { get; private set; }
 
-        // The icon of the app recording from the mic as a PNG, or null when none is or it isn't an app.
+        // The icon of the program recording from the mic as a PNG, or null when nothing is.
         public Byte[] MicAppIcon { get; private set; }
 
-        // The default sound output: whether there is one, whether an app is playing through it, whether it's muted, and its volume.
+        // The output an app is playing through, else the default: its name, whether an app is playing through it, whether
+        // it's muted, and its volume.
         public AudioState Sound { get; private set; }
+
+        // The icon of the program playing through that output as a PNG, or null when nothing is.
+        public Byte[] SoundAppIcon { get; private set; }
 
         public AppUsage TopApp { get; private set; }
 
@@ -158,9 +163,10 @@ namespace Loupedeck.KeyboPlugin
                 this.ReadMemory();
                 this.ReadNetwork();
                 this.ReadDiskActivity();
-                this.Mic = Audio.Mic();
-                this.MicAppIcon = this.Mic.UsedBy == null ? null : this.Icon(AppName(this.Mic.UsedBy).Path);
-                this.Sound = Audio.Sound();
+                this.Mic = Audio.Mic(this.Mic?.UsedBy);
+                this.MicAppIcon = this.Mic.UsedBy == null ? null : this.Icon(BundleOf(this.Mic.UsedBy));
+                this.Sound = Audio.Sound(this.Sound?.UsedBy);
+                this.SoundAppIcon = this.Sound.UsedBy == null ? null : this.Icon(BundleOf(this.Sound.UsedBy));
 
                 this.Gpu = Sensors.GpuLoad();
                 this.GpuHistory.Add(this.Gpu ?? 0);
@@ -278,19 +284,19 @@ namespace Loupedeck.KeyboPlugin
             this._lastDiskAt = now;
         }
 
-        // Mutes or unmutes the default microphone, then reads it again so keys redraw at once.
+        // Mutes or unmutes the mic the Mic key shows, then reads it again so keys redraw at once.
         public void SetMicMuted(Boolean muted)
         {
-            Audio.SetMicMuted(muted);
-            this.Mic = Audio.Mic();
+            Audio.SetMicMuted(this.Mic?.Device ?? 0, muted);
+            this.Mic = Audio.Mic(this.Mic?.UsedBy);
             this.Changed?.Invoke();
         }
 
-        // The same for the default sound output.
+        // The same for the output the Sound key shows.
         public void SetSoundMuted(Boolean muted)
         {
-            Audio.SetSoundMuted(muted);
-            this.Sound = Audio.Sound();
+            Audio.SetSoundMuted(this.Sound?.Device ?? 0, muted);
+            this.Sound = Audio.Sound(this.Sound?.UsedBy);
             this.Changed?.Invoke();
         }
 
@@ -337,6 +343,14 @@ namespace Loupedeck.KeyboPlugin
         {
             var app = path.IndexOf(".app/", StringComparison.Ordinal);
             return app > 0 ? (Path.GetFileName(path.Substring(0, app)), path.Substring(0, app + 4)) : (Path.GetFileName(path), null);
+        }
+
+        // Where a program's icon comes from: its app, else the bundle it runs from (System Settings' Sound pane is an .appex
+        // with its own speaker icon), else the program file itself, as Finder shows each.
+        private static String BundleOf(String path)
+        {
+            var bundle = Regex.Match(path, @"^.*?\.(app|appex|xpc)(?=/)");
+            return bundle.Success ? bundle.Value : path;
         }
 
         // Icons are read once per app and kept.

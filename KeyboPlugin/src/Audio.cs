@@ -2,19 +2,24 @@ namespace Loupedeck.KeyboPlugin
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Diagnostics;
+    using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
+    using System.Text;
 
-    // The default microphone and the default sound output through CoreAudio: is there one, is an app using it, is it
-    // muted, how loud is it, and which process records from the mic. Muting uses the device's own mute switch, or its
-    // volume when it has no switch. Only the default devices are touched, so an app set to another device still uses that
-    // one. Also which apps are recording (macOS 14.2 or later), for Dictate. It never listens to or plays anything itself.
+    // A mic and a sound output through CoreAudio: is there one, its name, is an app using it and which, is it muted, and
+    // how loud is it. Each is the device an app is using on that side (the default if it's one of them), else the default.
+    // Muting uses the device's own mute switch, or its volume when it has no switch. Also which apps are recording (macOS
+    // 14.2 or later), for Dictate. It never listens to or plays anything itself.
 
     internal static class Audio
     {
         private const String CoreAudio = "/System/Library/Frameworks/CoreAudio.framework/CoreAudio";
+        private const String CoreFoundation = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
         private const UInt32 SystemObject = 1;
+        private const UInt32 Utf8 = 0x08000100;
 
         // Where unmuting by volume goes when the volume from before the mute is gone (the plugin restarted since):
         // about where a mic usually sits, and low for speakers so they never come back loud.
@@ -29,23 +34,16 @@ namespace Loupedeck.KeyboPlugin
         private static readonly ConcurrentDictionary<(UInt32 Device, UInt32 Scope), Single[]> VolumesBeforeMute =
             new ConcurrentDictionary<(UInt32 Device, UInt32 Scope), Single[]>();
 
-        public static AudioState Mic()
-        {
-            var mic = Read(DefaultDevice("dIn "), Input);
+        // The mic an app is recording from, else the default. Shown is the program shown last time, kept while it still records.
+        public static AudioState Mic(String shown = null) => Pick(Input, "dIn ", "piri", shown);
 
-            if (mic.InUse)
-            {
-                mic.UsedBy = ProcessUsing("piri");
-            }
+        // The output an app is playing through, else the default, the same way.
+        public static AudioState Sound(String shown = null) => Pick(Output, "dOut", "piro", shown);
 
-            return mic;
-        }
+        // Mute the device that Mic() or Sound() picked (its Device), which isn't always the default.
+        public static void SetMicMuted(UInt32 device, Boolean muted) => SetMuted(device, Input, muted);
 
-        public static AudioState Sound() => Read(DefaultDevice("dOut"), Output);
-
-        public static void SetMicMuted(Boolean muted) => SetMuted(DefaultDevice("dIn "), Input, muted);
-
-        public static void SetSoundMuted(Boolean muted) => SetMuted(DefaultDevice("dOut"), Output, muted);
+        public static void SetSoundMuted(UInt32 device, Boolean muted) => SetMuted(device, Output, muted);
 
         // True if an app whose process name starts with one of these is recording. False if CoreAudio can't say.
         public static Boolean IsRecording(params String[] processPrefixes)
@@ -64,6 +62,29 @@ namespace Loupedeck.KeyboPlugin
             }
         }
 
+        // The device an app is using this way ('piri' recording, 'piro' playing), the default if it's one of them, else the
+        // default. CoreAudio's process list (macOS 14.2 or later) says which devices each process uses, so it also decides
+        // "in use" and who; without it, the device running counts.
+        private static AudioState Pick(UInt32 scope, String defaultSelector, String usingProperty, String shown)
+        {
+            var defaultDevice = DefaultDevice(defaultSelector);
+            var (listed, clients) = Clients(usingProperty, scope);
+            var live = clients.SelectMany(client => client.Devices).Distinct().OrderBy(id => id).ToList();
+            var device = live.Count == 0 || live.Contains(defaultDevice) ? defaultDevice : live[0];
+            var state = Read(device, scope);
+            state.Name = device == 0 ? null : GetString(device, Code("lnam"));
+
+            if (listed)
+            {
+                // A process that doesn't say which device it uses counts for this one only while this one is running.
+                var users = clients.Where(client => client.Devices.Contains(device) || (client.Devices.Length == 0 && state.InUse)).Select(client => client.Pid).ToList();
+                state.InUse = users.Count > 0;
+                state.UsedBy = Program(users, shown);
+            }
+
+            return state;
+        }
+
         private static AudioState Read(UInt32 device, UInt32 scope)
         {
             if (device == 0)
@@ -77,6 +98,7 @@ namespace Loupedeck.KeyboPlugin
             return new AudioState
             {
                 Exists = true,
+                Device = device,
                 InUse = GetUInt(device, Code("gone"), Global, 0) is UInt32 running && running != 0,
 
                 // The switch, or a volume of zero on a device without a settable switch, since that's how we mute it.
@@ -124,27 +146,42 @@ namespace Loupedeck.KeyboPlugin
             }
         }
 
-        // The executable of a process using a device this way ('piri' recording), one inside an app if there is one.
-        // Null when no process says so, or CoreAudio can't say (before macOS 14.2).
-        private static String ProcessUsing(String property)
+        // Every process using a device this way ('piri' recording, 'piro' playing), with the devices it uses on that side
+        // ('pdv#'), and whether CoreAudio could list processes at all (macOS 14.2 or later).
+        private static (Boolean Listed, List<(Int32 Pid, UInt32[] Devices)> Clients) Clients(String property, UInt32 scope)
         {
             try
             {
-                var paths = GetArray(SystemObject, Code("prs#"))
+                var processes = GetArray(SystemObject, Code("prs#"));
+                var clients = processes
                     .Where(p => GetArray(p, Code(property)).FirstOrDefault() != 0)
-                    .Select(p => (Int32)GetArray(p, Code("ppid")).FirstOrDefault())
-                    .Where(pid => pid > 0)
-                    .Select(Mac.ProcessPath)
-                    .Where(path => path != null)
+                    .Select(p => ((Int32)GetArray(p, Code("ppid")).FirstOrDefault(), GetArray(p, Code("pdv#"), scope)))
                     .ToList();
 
-                return paths.FirstOrDefault(path => path.Contains(".app/", StringComparison.Ordinal)) ?? paths.FirstOrDefault();
+                return (processes.Length > 0, clients);
             }
             catch (Exception ex) when (ex is DllNotFoundException || ex is EntryPointNotFoundException)
             {
-                PluginLog.Warning(ex, "Could not ask CoreAudio which app is recording");
-                return null;
+                PluginLog.Warning(ex, "Could not ask CoreAudio which apps are using sound");
+                return (false, new List<(Int32, UInt32[])>());
             }
+        }
+
+        // The program to show for these processes: the one macOS holds responsible for each (an app for its helpers and
+        // the WebKit processes it starts), apps first. The one shown before stays while it's still among them, so the icon
+        // doesn't flicker when several play at once. Null for none.
+        private static String Program(IEnumerable<Int32> pids, String shown)
+        {
+            var paths = pids
+                .Where(pid => pid > 0)
+                .Select(pid => Mac.ProcessPath(Mac.ResponsiblePid(pid)) ?? Mac.ProcessPath(pid))
+                .Where(path => path != null)
+                .Distinct()
+                .ToList();
+            var apps = paths.Where(path => path.Contains(".app/", StringComparison.Ordinal)).ToList();
+            var choices = apps.Count > 0 ? apps : paths;
+
+            return choices.Contains(shown) ? shown : choices.FirstOrDefault();
         }
 
         private static String ProcessName(Int32 pid)
@@ -161,10 +198,13 @@ namespace Loupedeck.KeyboPlugin
             }
         }
 
-        // An array of UInt32s on the global scope: 'prs#' lists audio processes, 'piri' is "recording", 'ppid' is the PID.
-        private static UInt32[] GetArray(UInt32 obj, UInt32 selector)
+        // An array of UInt32s: 'prs#' lists audio processes, 'piri' is "recording", 'ppid' is the PID, 'pdv#' the devices
+        // a process uses on one side.
+        private static UInt32[] GetArray(UInt32 obj, UInt32 selector) => GetArray(obj, selector, Global);
+
+        private static UInt32[] GetArray(UInt32 obj, UInt32 selector, UInt32 scope)
         {
-            var address = new Address(selector, Global, 0);
+            var address = new Address(selector, scope, 0);
 
             if (AudioObjectGetPropertyDataSize(obj, ref address, 0, IntPtr.Zero, out var size) != 0 || size == 0)
             {
@@ -238,6 +278,28 @@ namespace Loupedeck.KeyboPlugin
             }
 
             return AudioObjectGetPropertyData(device, ref address, 0, IntPtr.Zero, ref size, out UInt32 value) == 0 ? value : null;
+        }
+
+        // A string property ('lnam' is a device's name), or null. CoreAudio hands over a CFString, which is ours to release.
+        private static String GetString(UInt32 obj, UInt32 selector)
+        {
+            var address = new Address(selector, Global, 0);
+            var size = (UInt32)IntPtr.Size;
+
+            if (AudioObjectHasProperty(obj, ref address) == 0 || AudioObjectGetPropertyData(obj, ref address, 0, IntPtr.Zero, ref size, out IntPtr text) != 0 || text == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            try
+            {
+                var buffer = new Byte[512];
+                return CFStringGetCString(text, buffer, buffer.Length, Utf8) != 0 ? Encoding.UTF8.GetString(buffer, 0, Array.IndexOf(buffer, (Byte)0)) : null;
+            }
+            finally
+            {
+                CFRelease(text);
+            }
         }
 
         private static Single? GetFloat(UInt32 device, UInt32 selector, UInt32 scope, UInt32 element)
@@ -315,12 +377,27 @@ namespace Loupedeck.KeyboPlugin
 
         [DllImport(CoreAudio)]
         private static extern Int32 AudioObjectSetPropertyData(UInt32 objectId, ref Address address, UInt32 qualifierSize, IntPtr qualifier, UInt32 size, ref Single data);
+
+        [DllImport(CoreAudio)]
+        private static extern Int32 AudioObjectGetPropertyData(UInt32 objectId, ref Address address, UInt32 qualifierSize, IntPtr qualifier, ref UInt32 size, out IntPtr data);
+
+        [DllImport(CoreFoundation)]
+        private static extern Byte CFStringGetCString(IntPtr text, [Out] Byte[] buffer, Int64 bufferSize, UInt32 encoding);
+
+        [DllImport(CoreFoundation)]
+        private static extern void CFRelease(IntPtr value);
     }
 
-    // The default microphone or sound output, as last read.
+    // A mic or a sound output, as last read.
     public class AudioState
     {
         public Boolean Exists { get; set; }
+
+        // CoreAudio's ID for the device, for muting the same one.
+        public UInt32 Device { get; set; }
+
+        // Its name as macOS shows it, like "EarPods Microphone".
+        public String Name { get; set; }
 
         // An app is recording from it (mic) or playing through it (sound) right now.
         public Boolean InUse { get; set; }
@@ -333,11 +410,13 @@ namespace Loupedeck.KeyboPlugin
         // 0 to 1, or null without a volume we can set.
         public Single? Volume { get; set; }
 
-        // The mic only: the executable of the process recording from it, when CoreAudio can say (macOS 14.2 or later).
+        // The program recording from it or playing through it (the app macOS holds responsible), when CoreAudio can say
+        // (macOS 14.2 or later).
         public String UsedBy { get; set; }
 
         public override String ToString() => !this.Exists ? "none" :
-            (this.Muted ? "muted" : "on") + (this.Volume is Single volume ? FormattableString.Invariant($" {volume * 100:0}%") : String.Empty) +
-            (this.InUse ? ", in use" : String.Empty);
+            (this.Name == null ? String.Empty : this.Name + " ") + (this.Muted ? "muted" : "on") +
+            (this.Volume is Single volume ? FormattableString.Invariant($" {volume * 100:0}%") : String.Empty) +
+            (this.InUse ? ", in use" : String.Empty) + (this.UsedBy == null ? String.Empty : " by " + Path.GetFileName(this.UsedBy));
     }
 }

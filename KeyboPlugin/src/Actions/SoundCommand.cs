@@ -3,22 +3,25 @@ namespace Loupedeck.KeyboPlugin
     using System;
     using System.Threading;
 
-    // The default sound output: its volume, grey while nothing plays and blue with rippling waves while an app plays
-    // through it, and slashed "Muted". Muted while something is playing glows amber, since you're missing it. A tap mutes
-    // or unmutes it. An output with no volume or mute to set, as on many displays, shows "Fixed".
+    // The sound output an app is playing through, else the default, named on the label: its volume, grey while nothing
+    // plays and blue with rippling waves while an app plays through it, with that app's icon, and slashed "Muted". Muted
+    // while something is playing glows amber, since you're missing it. A tap mutes or unmutes that output. One with no
+    // volume or mute to set, as on many displays, shows "Fixed", and a tap says "No mute" for a moment.
 
     public class SoundCommand : StatCommand
     {
         private const Int32 FrameMs = 200;
         private static readonly TimeSpan HiddenAfter = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan NoMuteFor = TimeSpan.FromSeconds(2);
 
         private readonly Object _lock = new Object();
         private Timer _ripple;
         private Int32 _frame;
         private DateTime _lastDraw;
+        private DateTime _noMuteUntil;
 
         public SoundCommand()
-            : base("Sound", "The default sound output and its volume: blue while something plays, amber if you're muted while it does. Tap to mute or unmute", Groups.Tools)
+            : base("Sound", "The sound output in use, by name, and its volume: blue while something plays, amber if you're muted while it does. Tap to mute or unmute", Groups.Tools)
         {
         }
 
@@ -35,6 +38,11 @@ namespace Loupedeck.KeyboPlugin
             if (sound is { Exists: true, CanMute: true })
             {
                 this.Monitor.SetSoundMuted(!sound.Muted);
+            }
+            else if (sound is { Exists: true })
+            {
+                this._noMuteUntil = DateTime.UtcNow + NoMuteFor;
+                this.ActionImageChanged();
             }
         }
 
@@ -58,7 +66,12 @@ namespace Loupedeck.KeyboPlugin
 
             var shapes = (missed ? KeyArt.Glow(KeyArt.Amber) : String.Empty) +
                 KeyArt.Speaker(58, Layout.ZoneMiddle, color, waveColor, sound?.Muted == true, playing ? this._frame : null);
-            return KeyArt.Key(imageSize, "Sound", shapes, new Line(value, Layout.Value, 28, valueColor, true));
+            var icon = KeyArt.CornerIcon(sound is { Exists: true, InUse: true } ? this.Monitor.SoundAppIcon : null);
+            var line = DateTime.UtcNow < this._noMuteUntil
+                ? new Line("No mute", Layout.SmallValue, 26, KeyArt.Amber, true)
+                : new Line(value, Layout.Value, 28, valueColor, true);
+
+            return KeyArt.Key(imageSize, null, shapes, icon, KeyArt.DeviceLabel(sound?.Name, "Sound", icon != null), line);
         }
 
         // Steps the waves a few times a second while something plays, and stops once the key isn't being drawn.

@@ -5,8 +5,8 @@ namespace Loupedeck.KeyboPlugin
     using System.Runtime.InteropServices;
     using System.Text;
 
-    // Calls into macOS: the kernel, Foundation, Wi-Fi, app icons, where apps live and run, and process paths. IOKit hardware
-    // readings are in Sensors.cs.
+    // Calls into macOS: the kernel, Foundation, Wi-Fi, app icons, where apps live and run, and processes (their paths and
+    // the app responsible for them). IOKit hardware readings are in Sensors.cs.
 
     internal static class Mac
     {
@@ -142,6 +142,21 @@ namespace Loupedeck.KeyboPlugin
             var buffer = new Byte[4096];
             var length = proc_pidpath(pid, buffer, (UInt32)buffer.Length);
             return length > 0 ? Encoding.UTF8.GetString(buffer, 0, length) : null;
+        }
+
+        // The process macOS holds responsible for this one, as Privacy & Security counts it: an app for its helpers and the
+        // WebKit processes it starts. Itself when nothing else is, or when macOS can't say (a private call).
+        public static Int32 ResponsiblePid(Int32 pid)
+        {
+            try
+            {
+                var owner = responsibility_get_pid_responsible_for_pid(pid);
+                return owner > 0 ? owner : pid;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return pid;
+            }
         }
 
         // Where an app is installed, from its bundle ID, or null if it isn't. LaunchServices gives the real place, so an app
@@ -394,6 +409,9 @@ namespace Loupedeck.KeyboPlugin
 
         [DllImport(System)]
         private static extern Int32 proc_pidpath(Int32 pid, [Out] Byte[] buffer, UInt32 bufferSize);
+
+        [DllImport(System)]
+        private static extern Int32 responsibility_get_pid_responsible_for_pid(Int32 pid);
 
         [DllImport(ObjC)]
         private static extern IntPtr objc_getClass(String name);

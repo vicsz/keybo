@@ -56,7 +56,10 @@ namespace Loupedeck.KeyboPlugin
                     builder.DrawImage(png, Scaled(x, scale), Scaled(y, scale), Scaled(size, scale), Scaled(size, scale));
                 }
 
-                DrawLine(builder, new Line(label, 15, 16, Muted), scale);
+                if (!String.IsNullOrEmpty(label))
+                {
+                    DrawLine(builder, Label(label), scale);
+                }
 
                 foreach (var line in lines)
                 {
@@ -156,6 +159,18 @@ namespace Loupedeck.KeyboPlugin
 
         // An app's icon in the key's top-right corner, beside the label, as the picture for Key. Null without an icon.
         public static (Byte[] Png, Int32 X, Int32 Y, Int32 Size)? CornerIcon(Byte[] png) => png == null ? null : (png, 82, 3, 28);
+
+        // The grey label at the top of a key, centred on 58 + x. Moving it keeps the box 116 wide, since a narrower box
+        // draws its text a little higher.
+        public static Line Label(String text, Int32 x = 0) => new Line(text, 15, 16, Muted, false, x);
+
+        // The label of the Mic and Sound keys: the device's short name across the key, or beside a corner icon in the space
+        // to its left (centred on 41). The fallback when the device has no name.
+        public static Line DeviceLabel(String name, String fallback, Boolean besideIcon)
+        {
+            var text = String.IsNullOrWhiteSpace(name) ? fallback : name;
+            return besideIcon ? Label(ShortName(text, 70), -17) : Label(ShortName(text, 108));
+        }
 
         // A small tomato centred on x, y, about 19 across with its leaves on top.
         public static String Tomato(Single x, Single y, UInt32 color, UInt32 leaves)
@@ -340,6 +355,56 @@ namespace Loupedeck.KeyboPlugin
             return $"<path d='M{At(-15, -17)} L{At(15, 15)}' stroke='{Hex(Surface)}' stroke-width='7' stroke-linecap='round'/>" +
                 $"<path d='M{At(-15, -17)} L{At(15, 15)}' stroke='{Hex(color)}' stroke-width='3' stroke-linecap='round'/>";
         }
+
+        // A device's name as its label says it: without an owner ("Victor's AirPods") or the words such names share
+        // ("Microphone", "Speakers", "External"), then words off the end until it fits the room, then letters.
+        private static String ShortName(String name, Single room)
+        {
+            var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+
+            if (words.Count > 1 && (words[0].EndsWith("'s", StringComparison.Ordinal) || words[0].EndsWith("’s", StringComparison.Ordinal)))
+            {
+                words.RemoveAt(0);
+            }
+
+            foreach (var word in new[] { "Microphone", "Speakers", "External" })
+            {
+                if (words.Count > 1)
+                {
+                    words.Remove(word);
+                }
+            }
+
+            while (words.Count > 1 && TextWidth(String.Join(" ", words)) > room)
+            {
+                words.RemoveAt(words.Count - 1);
+            }
+
+            var text = String.Join(" ", words);
+
+            if (TextWidth(text) <= room)
+            {
+                return text;
+            }
+
+            while (text.Length > 1 && TextWidth(text + "…") > room)
+            {
+                text = text.Substring(0, text.Length - 1);
+            }
+
+            return text + "…";
+        }
+
+        // About how wide text is in the 16 px label, from Helvetica's letter widths, since the SDK can't measure text.
+        private static Single TextWidth(String text) => text.Sum(c => c switch
+        {
+            'i' or 'j' or 'l' or '\'' or '’' or '.' or ',' or '!' or '|' => 4f,
+            'f' or 't' or 'r' or 'I' or ' ' or '(' or ')' or '-' or '/' => 5f,
+            'm' or 'M' or 'w' or 'W' => 13f,
+            '…' => 16f,
+            >= 'A' and <= 'Z' => 11f,
+            _ => 8.6f,
+        });
 
         public static String Hex(UInt32 color) => $"#{color:X6}";
 

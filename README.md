@@ -99,8 +99,8 @@ The stat keys only read the system while one of them is on the keypad.
 
 | Key | What it does |
 |---|---|
-| Mic | The default microphone: Ready (grey) while it's free, Live (red) with the app's icon while an app records from it, Muted (slashed). Muted while an app is still listening glows amber, since it can't hear you. Tap to mute or unmute |
-| Sound | The default sound output and its volume: grey while nothing plays, blue with moving waves while an app plays through it, Muted (slashed). Muted while something plays glows amber, since you're missing it. Tap to mute or unmute |
+| Mic | The mic an app is recording from, else the default one, named at the top: Ready (grey) while it's free, Live (red) with the recording app's icon, Muted (slashed). Muted while an app is still listening glows amber, since it can't hear you. Tap to mute or unmute that mic; one that can't be muted, like an iPhone's, says No mute |
+| Sound | The sound output an app is playing through, else the default one, named at the top, and its volume: grey while nothing plays, blue with moving waves and the playing app's icon while an app plays through it, Muted (slashed). Muted while something plays glows amber, since you're missing it. Tap to mute or unmute that output; one that can't be muted (Fixed, like many displays) says No mute |
 | Keep awake | Tap to keep the Mac and its screen on, with no screen saver or lock, say to watch a long call without touching anything; tap again to let them sleep. The cup steams while on. Starts off whenever the plugin loads |
 | Pomodoro | A 25-minute timer. Tap to start, pause or carry on; hold to reset. A sound plays at the end and the key glows green until tapped |
 
@@ -167,8 +167,8 @@ Add this to `~/.claude/CLAUDE.md` so session names fit on a key:
 - CPU is the share of all cores. Busiest app counts one core as 100%, so a busy app can show over 100%.
 - Network counts Wi-Fi and Ethernet, not VPN tunnels. Wi-Fi's link speed moves around, as macOS reports it.
 - CPU temp uses a private macOS API, so an update could break it.
-- Mic and Sound mute only the default microphone and sound output. One with no mute switch is muted by setting its volume to zero; if the plugin restarts while it's muted, unmuting sets 75% for a mic and 25% for speakers. An output with no volume control, as on many displays, shows Fixed.
-- Live and the moving waves mean an app has the device open, not that anything is audible: a call keeps both on throughout. Mic's app icon needs macOS 14.2 or later.
+- Mic and Sound mute only the device they show. One with no mute switch is muted by setting its volume to zero; if the plugin restarts while it's muted, unmuting sets 75% for a mic and 25% for speakers. An output with no volume control, as on many displays, shows Fixed.
+- Live and the moving waves mean an app has the device open, not that anything is audible: a call keeps both on throughout. System Settings' Sound pane counts too while it's open, since its input meter listens; Mic shows the pane's red speaker icon. With several apps playing, Sound shows one and keeps it until it stops. The app icons, and finding a device other than the default, need macOS 14.2 or later.
 - Keep awake works like `caffeinate -d -u` from inside the plugin, so it also holds off a screen lock that your company sets. If the plugin quits, the Mac can sleep and lock again.
 - Battery shows "no battery" on desktop Macs.
 - The keypad goes blank while the Mac is locked.
