@@ -235,7 +235,7 @@ namespace Loupedeck.KeyboPlugin
         // A window's name for its key: the first part of its title that isn't the app's own name or a file, so a VS Code
         // window shows its folder rather than the file you're in. A title of only a file gives the file's name, and no
         // title gives the app's.
-        internal static String ShortName(String title, String appName)
+        private static String ShortName(String title, String appName)
         {
             var parts = Parts(title).Where(part => !part.Equals(appName, StringComparison.OrdinalIgnoreCase)).ToList();
             return parts.FirstOrDefault(part => !FileName.IsMatch(part))

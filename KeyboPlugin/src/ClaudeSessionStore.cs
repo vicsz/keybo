@@ -317,12 +317,12 @@ namespace Loupedeck.KeyboPlugin
                 return null;
             }
 
-            if (ClaudeApp.IsFront(ClaudeApp.BundleId))
+            return ClaudeApp.Front()?.BundleId switch
             {
-                return ReadFocusedIdFromLog() ?? currentId;
-            }
-
-            return ClaudeApp.IsFront(CodexThreads.BundleId) ? CodexThreads.ReadOpenThreadId() : null;
+                ClaudeApp.BundleId => ReadFocusedIdFromLog() ?? currentId,
+                CodexThreads.BundleId => CodexThreads.ReadOpenThreadId(),
+                _ => null,
+            };
         }
 
         private static String ReadFocusedIdFromLog()

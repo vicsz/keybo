@@ -14,6 +14,10 @@ namespace Loupedeck.KeyboPlugin
         private const String CoreFoundation = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
         private const Int64 PosixPathStyle = 0;
 
+        // CoreFoundation's shared true and false, looked up once, for flags like AXMinimized.
+        private static readonly IntPtr CFTrue = CFBooleanNamed("kCFBooleanTrue");
+        private static readonly IntPtr CFFalse = CFBooleanNamed("kCFBooleanFalse");
+
         public static Boolean IsTrusted() => AXIsProcessTrusted();
 
         // Keeps an element past the read that found it, like a pinned window. Every Retain needs a Release.
@@ -37,7 +41,7 @@ namespace Loupedeck.KeyboPlugin
             public IntPtr App { get; }
 
             public void Set(IntPtr element, String attribute, Boolean value) =>
-                AXUIElementSetAttributeValue(element, this.Name(attribute), value ? CFBoolean("kCFBooleanTrue") : CFBoolean("kCFBooleanFalse"));
+                AXUIElementSetAttributeValue(element, this.Name(attribute), value ? CFTrue : CFFalse);
 
             public String Text(IntPtr element, String attribute) =>
                 this.Copy(element, attribute) is IntPtr value && CFGetTypeID(value) == CFStringGetTypeID() ? ReadString(value) : null;
@@ -131,10 +135,10 @@ namespace Loupedeck.KeyboPlugin
                 CFStringGetCharacters(value, new CFRange { Location = 0, Length = length }, buffer);
                 return new String(buffer);
             }
-
-            private static IntPtr CFBoolean(String name) =>
-                Marshal.ReadIntPtr(NativeLibrary.GetExport(NativeLibrary.Load(CoreFoundation), name));
         }
+
+        private static IntPtr CFBooleanNamed(String name) =>
+            Marshal.ReadIntPtr(NativeLibrary.GetExport(NativeLibrary.Load(CoreFoundation), name));
 
         [StructLayout(LayoutKind.Sequential)]
         private struct CFRange
